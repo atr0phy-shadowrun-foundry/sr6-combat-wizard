@@ -1,0 +1,122 @@
+<div class="sr6tw">
+    <header class="sr6tw-bar">
+        <div class="sr6tw-bar-row">
+            <div class="sr6tw-who">
+                <span class="sr6tw-who-label">Acting</span>
+                <strong>{{actorName}}</strong>
+            </div>
+            {{#if economy}}
+            <div class="sr6tw-tally" title="{{economy.note}}">
+                <span class="sr6tw-tally-item {{#if economy.majorOver}}over{{/if}}">
+                    <span>Major {{economy.majorSpent}}/{{economy.majorMax}}</span>
+                    <button type="button" data-action="tally" data-track="major" data-delta="1">+</button>
+                    <button type="button" data-action="tally" data-track="major" data-delta="-1">−</button>
+                </span>
+                <span class="sr6tw-tally-item {{#if economy.minorOver}}over{{/if}}">
+                    <span>Minor {{economy.minorSpent}}/{{economy.minorMax}}</span>
+                    <button type="button" data-action="tally" data-track="minor" data-delta="1">+</button>
+                    <button type="button" data-action="tally" data-track="minor" data-delta="-1">−</button>
+                </span>
+            </div>
+            {{/if}}
+        </div>
+        {{#if multipleActors}}
+        <div class="sr6tw-actors">
+            {{#each actors}}
+            <button type="button" class="sr6tw-chip {{#if current}}current{{/if}}" data-action="actor" data-actor-uuid="{{uuid}}">{{name}}</button>
+            {{/each}}
+        </div>
+        {{/if}}
+        {{#if crumb.length}}
+        <div class="sr6tw-crumb">{{#each crumb}}<span>{{this}}</span>{{/each}}</div>
+        {{/if}}
+    </header>
+
+    <div class="sr6tw-scroll">
+        {{#if kicker}}<p class="sr6tw-kicker">{{kicker}}</p>{{/if}}
+        <h2>{{title}}</h2>
+        {{#if lead}}<p class="sr6tw-lead">{{lead}}</p>{{/if}}
+
+        {{#if search}}
+        <div class="sr6tw-search">
+            <input type="search" name="compendiumQuery" value="{{search.query}}" placeholder="{{search.placeholder}}">
+            <button type="button" data-action="search">Search</button>
+            <button type="button" data-action="pack" data-pack="{{search.pack}}">Open compendium</button>
+        </div>
+        {{/if}}
+
+        {{#if targets.length}}
+        <p class="sr6tw-targets">Targeted: {{#each targets}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}
+            <button type="button" data-action="refresh">Refresh</button>
+        </p>
+        {{else}}
+        <p class="sr6tw-targets">No token targeted.
+            <button type="button" data-action="refresh">Refresh</button>
+        </p>
+        {{/if}}
+
+        {{#each groups}}
+        <section class="sr6tw-group">
+            {{#if heading}}<h3>{{heading}}</h3>{{/if}}
+            {{#if note}}<p class="sr6tw-note">{{note}}</p>{{/if}}
+            <div class="sr6tw-choices">
+                {{#each choices}}
+                <button type="button"
+                    class="sr6tw-choice"
+                    data-action="{{#if action}}{{action}}{{else}}choose{{/if}}"
+                    {{#if go}}data-go="{{go}}"{{/if}}
+                    data-label="{{label}}"
+                    {{#if kind}}data-kind="{{kind}}"{{/if}}
+                    {{#if itemId}}data-item-id="{{itemId}}"{{/if}}
+                    {{#if fireMode}}data-fire-mode="{{fireMode}}"{{/if}}
+                    {{#if burst}}data-burst="{{burst}}"{{/if}}
+                    {{#if faArea}}data-fa-area="{{faArea}}"{{/if}}
+                    {{#if topic}}data-topic="{{topic}}"{{/if}}
+                    {{#if skill}}data-skill="{{skill}}"{{/if}}
+                    {{#if spec}}data-spec="{{spec}}"{{/if}}
+                    {{#if matrixId}}data-matrix-id="{{matrixId}}"{{/if}}
+                    {{#if pool}}data-pool="{{pool}}"{{/if}}
+                    {{#if pack}}data-pack="{{pack}}"{{/if}}
+                    {{#if documentId}}data-document-id="{{documentId}}"{{/if}}
+                    {{#if clear}}data-clear="{{clear}}"{{/if}}
+                    {{#if track}}data-track="{{track}}"{{/if}}
+                    {{#if status}}data-status="{{status}}"{{/if}}
+                    {{#if disabled}}disabled{{/if}}>
+                    <span class="sr6tw-choice-copy">
+                        <span class="sr6tw-choice-label">{{label}}</span>
+                        {{#if hint}}<span class="sr6tw-choice-hint">{{hint}}</span>{{/if}}
+                    </span>
+                    {{#if badge}}<span class="sr6tw-badge">{{badge}}</span>{{/if}}
+                </button>
+                {{/each}}
+            </div>
+        </section>
+        {{/each}}
+
+        {{#each blocks}}
+        <section class="sr6tw-block {{tone}}">
+            <div class="sr6tw-block-head">
+                <h3>{{heading}}</h3>
+                {{#if cite}}
+                <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
+                {{/if}}
+            </div>
+            {{#each paragraphs}}<p>{{this}}</p>{{/each}}
+        </section>
+        {{/each}}
+
+        {{#if footnote}}<p class="sr6tw-footnote">{{footnote}}</p>{{/if}}
+        {{#if economy.note}}<p class="sr6tw-footnote">{{economy.note}}</p>{{/if}}
+    </div>
+
+    <footer class="sr6tw-foot">
+        <button type="button" data-action="back" {{#unless showBack}}disabled{{/unless}}>Back</button>
+        <button type="button" data-action="home">Start</button>
+        {{#if launch}}
+        <button type="button" class="sr6tw-launch" data-action="launch" data-launch="{{launch.type}}"
+            {{#if launch.skill}}data-skill="{{launch.skill}}"{{/if}}
+            {{#if launch.spec}}data-spec="{{launch.spec}}"{{/if}}
+            {{#if launch.pool}}data-pool="{{launch.pool}}"{{/if}}>{{launch.label}}</button>
+        {{/if}}
+    </footer>
+</div>
