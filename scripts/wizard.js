@@ -66,12 +66,12 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     static show(actor) {
         if (!this.#app) this.#app = new TurnWizard();
         const app = this.#app;
-        if (actor) app.state.actorUuid = actor.uuid;
+        if (actor) app.turn.actorUuid = actor.uuid;
         if (!app.rendered) {
-            app.state.pageId = "home";
-            app.state.history = [];
-            app.state.data = {};
-            app.state.label = "";
+            app.turn.pageId = "home";
+            app.turn.history = [];
+            app.turn.data = {};
+            app.turn.label = "";
         }
         app.render({ force: true });
         return app;
@@ -79,7 +79,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     constructor(options = {}) {
         super(options);
-        this.state = {
+        this.turn = {
             actorUuid: null,
             pageId: "home",
             history: [],
@@ -94,8 +94,8 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     get actor() {
-        if (this.state.actorUuid) {
-            const fromState = fromUuidSync(this.state.actorUuid);
+        if (this.turn.actorUuid) {
+            const fromState = fromUuidSync(this.turn.actorUuid);
             if (fromState) return fromState;
         }
         return defaultActor();
@@ -105,19 +105,19 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         const context = typeof super._prepareContext === "function"
             ? await super._prepareContext(options)
             : {};
-        if (!this.state.actorUuid) {
+        if (!this.turn.actorUuid) {
             const actor = defaultActor();
-            if (actor) this.state.actorUuid = actor.uuid;
+            if (actor) this.turn.actorUuid = actor.uuid;
         }
-        const page = await buildPage(this.state);
+        const page = await buildPage(this.turn);
         delete page.actor;
         return { ...context, ...page };
     }
 
     static async #onSubmit(event, form) {
-        if (this.state.pageId !== "compendium") return null;
+        if (this.turn.pageId !== "compendium") return null;
         const query = form?.querySelector?.("[name=compendiumQuery]")?.value ?? "";
-        this.state.data = { ...this.state.data, query };
+        this.turn.data = { ...this.turn.data, query };
         return this.render();
     }
 
@@ -131,7 +131,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     static async #onBack(event) {
         event.preventDefault();
-        const previous = this.state.history.pop();
+        const previous = this.turn.history.pop();
         if (!previous) return;
         this.#restore(previous);
         return this.render();
@@ -139,20 +139,20 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     static async #onHome(event) {
         event.preventDefault();
-        if (this.state.pageId === "home" && !this.state.label && !Object.keys(this.state.data).length) return;
-        this.state.history.push(this.#snapshot());
-        this.state.pageId = "home";
-        this.state.data = {};
-        this.state.label = "";
+        if (this.turn.pageId === "home" && !this.turn.label && !Object.keys(this.turn.data).length) return;
+        this.turn.history.push(this.#snapshot());
+        this.turn.pageId = "home";
+        this.turn.data = {};
+        this.turn.label = "";
         return this.render();
     }
 
     static async #onCrumb(event, target) {
         event.preventDefault();
         const index = Number(target.dataset.index);
-        if (!Number.isInteger(index) || index < 0 || index >= this.state.history.length) return;
-        const previous = this.state.history[index];
-        this.state.history = this.state.history.slice(0, index);
+        if (!Number.isInteger(index) || index < 0 || index >= this.turn.history.length) return;
+        const previous = this.turn.history[index];
+        this.turn.history = this.turn.history.slice(0, index);
         this.#restore(previous);
         return this.render();
     }
@@ -165,7 +165,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
             spec: target.dataset.spec,
             pool: target.dataset.pool,
         };
-        await runLaunch(this.actor, launch, this.state.data);
+        await runLaunch(this.actor, launch, this.turn.data);
     }
 
     static async #onBook(event, target) {
@@ -187,12 +187,12 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     static async #onActor(event, target) {
         event.preventDefault();
         const uuid = target.dataset.actorUuid;
-        if (!uuid || uuid === this.state.actorUuid) return;
-        this.state.history.push(this.#snapshot());
-        this.state.actorUuid = uuid;
-        this.state.pageId = "home";
-        this.state.data = {};
-        this.state.label = "";
+        if (!uuid || uuid === this.turn.actorUuid) return;
+        this.turn.history.push(this.#snapshot());
+        this.turn.actorUuid = uuid;
+        this.turn.pageId = "home";
+        this.turn.data = {};
+        this.turn.label = "";
         return this.render();
     }
 
@@ -221,13 +221,13 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     static async #onSearch(event) {
         event.preventDefault();
         const input = this.element?.querySelector?.("[name=compendiumQuery]");
-        this.state.data = { ...this.state.data, query: input?.value ?? "" };
+        this.turn.data = { ...this.turn.data, query: input?.value ?? "" };
         return this.render();
     }
 
     static async #onPack(event, target) {
         event.preventDefault();
-        await openPack(target.dataset.pack || this.state.data.pack);
+        await openPack(target.dataset.pack || this.turn.data.pack);
     }
 
     static async #onImport(event, target) {
@@ -261,30 +261,30 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     #snapshot() {
         return {
-            pageId: this.state.pageId,
-            label: this.state.label,
-            data: foundry.utils.deepClone(this.state.data),
-            actorUuid: this.state.actorUuid,
+            pageId: this.turn.pageId,
+            label: this.turn.label,
+            data: foundry.utils.deepClone(this.turn.data),
+            actorUuid: this.turn.actorUuid,
         };
     }
 
     #restore(entry) {
-        this.state.pageId = entry.pageId;
-        this.state.label = entry.label;
-        this.state.data = entry.data;
-        if (entry.actorUuid) this.state.actorUuid = entry.actorUuid;
+        this.turn.pageId = entry.pageId;
+        this.turn.label = entry.label;
+        this.turn.data = entry.data;
+        if (entry.actorUuid) this.turn.actorUuid = entry.actorUuid;
     }
 
     async #navigate(pageId, patch, label) {
-        const data = { ...this.state.data };
+        const data = { ...this.turn.data };
         for (const [key, value] of Object.entries(patch)) {
             if (value == null || value === "") delete data[key];
             else data[key] = value;
         }
-        this.state.history.push(this.#snapshot());
-        this.state.pageId = pageId;
-        this.state.label = label;
-        this.state.data = data;
+        this.turn.history.push(this.#snapshot());
+        this.turn.pageId = pageId;
+        this.turn.label = label;
+        this.turn.data = data;
         return this.render();
     }
 }
