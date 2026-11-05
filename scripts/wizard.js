@@ -1,11 +1,12 @@
 import { destinationForItem, importFromCompendium, openPack } from "./compendiums.js";
+import { buildProvision, findByGenesis } from "./provisions.js";
 import { buildPage, defaultActor } from "./pages.js";
 import { openPrintedPage, refillWeapon, runLaunch, toggleStatus } from "./launch.js";
 import { addTally } from "./tally.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-const DATA_FIELDS = ["kind", "itemId", "fireMode", "burst", "faArea", "topic", "skill", "spec", "matrixId", "pool", "pack"];
+const DATA_FIELDS = ["kind", "itemId", "fireMode", "burst", "faArea", "topic", "skill", "spec", "matrixId", "pool", "pack", "guide", "guideStep"];
 
 function dataAttribute(key) {
     return "data-" + key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
@@ -23,7 +24,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         },
         position: {
             width: 780,
-            height: 740,
+            height: 640,
         },
         form: {
             submitOnChange: false,
@@ -55,6 +56,8 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
             search: this.#onSearch,
             pack: this.#onPack,
             import: this.#onImport,
+            provision: this.#onProvision,
+            crumb: this.#onCrumb,
         };
     }
 
@@ -130,18 +133,27 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         event.preventDefault();
         const previous = this.state.history.pop();
         if (!previous) return;
-        this.state.pageId = previous.pageId;
-        this.state.label = previous.label;
-        this.state.data = previous.data;
+        this.#restore(previous);
         return this.render();
     }
 
     static async #onHome(event) {
         event.preventDefault();
-        this.state.history = [];
+        if (this.state.pageId === "home" && !this.state.label && !Object.keys(this.state.data).length) return;
+        this.state.history.push(this.#snapshot());
         this.state.pageId = "home";
         this.state.data = {};
         this.state.label = "";
+        return this.render();
+    }
+
+    static async #onCrumb(event, target) {
+        event.preventDefault();
+        const index = Number(target.dataset.index);
+        if (!Number.isInteger(index) || index < 0 || index >= this.state.history.length) return;
+        const previous = this.state.history[index];
+        this.state.history = this.state.history.slice(0, index);
+        this.#restore(previous);
         return this.render();
     }
 
@@ -176,8 +188,8 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         event.preventDefault();
         const uuid = target.dataset.actorUuid;
         if (!uuid || uuid === this.state.actorUuid) return;
+        this.state.history.push(this.#snapshot());
         this.state.actorUuid = uuid;
-        this.state.history = [];
         this.state.pageId = "home";
         this.state.data = {};
         this.state.label = "";
@@ -226,17 +238,50 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         await this.#navigate(destination.pageId, destination.patch, created.name);
     }
 
+    static async #onProvision(event, target) {
+        event.preventDefault();
+        const actor = this.actor;
+        if (!actor?.isOwner) {
+            ui.notifications.warn("Only an owner of this actor can add an item to the sheet.");
+            return;
+        }
+        const parent = actor.items.get(target.dataset.itemId);
+        const provisionId = target.dataset.provision;
+        const data = buildProvision(provisionId, parent);
+        if (!data) {
+            ui.notifications.warn("This page cannot create that item.");
+            return;
+        }
+        const existing = findByGenesis(actor, data.system.genesisID);
+        const created = existing || (await actor.createEmbeddedDocuments("Item", [data]))[0];
+        if (!existing) ui.notifications.info(`${created.name} was added to ${actor.name}.`);
+        const destination = destinationForItem(created);
+        await this.#navigate(destination.pageId, destination.patch, created.name);
+    }
+
+    #snapshot() {
+        return {
+            pageId: this.state.pageId,
+            label: this.state.label,
+            data: foundry.utils.deepClone(this.state.data),
+            actorUuid: this.state.actorUuid,
+        };
+    }
+
+    #restore(entry) {
+        this.state.pageId = entry.pageId;
+        this.state.label = entry.label;
+        this.state.data = entry.data;
+        if (entry.actorUuid) this.state.actorUuid = entry.actorUuid;
+    }
+
     async #navigate(pageId, patch, label) {
         const data = { ...this.state.data };
         for (const [key, value] of Object.entries(patch)) {
             if (value == null || value === "") delete data[key];
             else data[key] = value;
         }
-        this.state.history.push({
-            pageId: this.state.pageId,
-            label: this.state.label,
-            data: foundry.utils.deepClone(this.state.data),
-        });
+        this.state.history.push(this.#snapshot());
         this.state.pageId = pageId;
         this.state.label = label;
         this.state.data = data;

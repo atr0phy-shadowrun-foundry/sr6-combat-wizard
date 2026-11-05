@@ -4,28 +4,49 @@
     --sr6tw-gap: #c4963a;
 }
 
+.sr6-turn-wizard {
+    display: flex;
+    flex-direction: column;
+}
+
 .sr6-turn-wizard .window-content,
 .sr6-turn-wizard .window-content > form {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1 1 auto;
+    height: auto;
     min-height: 0;
     padding: 0;
+    overflow: hidden;
+}
+
+.sr6-turn-wizard .window-content > * {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: hidden;
 }
 
 .sr6-turn-wizard .sr6tw {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1 1 auto;
     min-height: 0;
-    gap: 0;
+    overflow: hidden;
 }
 
 .sr6-turn-wizard .sr6tw-bar,
 .sr6-turn-wizard .sr6tw-foot {
-    padding: 0.55rem 0.8rem;
-    background: rgba(0, 0, 0, 0.18);
+    flex: 0 0 auto;
+    padding: 0.45rem 0.8rem;
+    background: rgba(0, 0, 0, 0.28);
+}
+
+.sr6-turn-wizard .sr6tw-foot {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
 }
 
 .sr6-turn-wizard .sr6tw-bar-row,
@@ -67,6 +88,21 @@
     margin-top: 0.4rem;
 }
 
+.sr6-turn-wizard .sr6tw-crumb button,
+.sr6-turn-wizard .sr6tw-crumb span {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.sr6-turn-wizard .sr6tw-crumb span {
+    cursor: default;
+}
+
+.sr6-turn-wizard .sr6tw-crumb button:not(:last-child)::after,
 .sr6-turn-wizard .sr6tw-crumb span:not(:last-child)::after {
     content: " / ";
     color: var(--color-text-secondary, #c9c3b6);
@@ -79,9 +115,97 @@
     padding: 0.8rem 1rem 1rem;
 }
 
-.sr6-turn-wizard .sr6tw-scroll h2 {
+.sr6-turn-wizard .sr6tw-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    position: relative;
+}
+
+.sr6-turn-wizard .sr6tw-title-row h2 {
+    flex: 1 1 auto;
     margin: 0.15rem 0 0.4rem;
     border: 0;
+}
+
+.sr6-turn-wizard .sr6tw-help {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.sr6-turn-wizard .sr6tw-title-row > .sr6tw-help {
+    position: static;
+}
+
+.sr6-turn-wizard .sr6tw-help-btn {
+    width: 1.35rem;
+    height: 1.35rem;
+    padding: 0;
+    border-radius: 999px;
+    border: 1px solid var(--sr6tw-rule);
+    background: transparent;
+    color: var(--sr6tw-rule);
+    font: inherit;
+    font-size: 0.8rem;
+    line-height: 1;
+    cursor: help;
+}
+
+.sr6-turn-wizard .sr6tw-help.eden .sr6tw-help-btn {
+    border-color: var(--sr6tw-eden);
+    color: var(--sr6tw-eden);
+}
+
+.sr6-turn-wizard .sr6tw-help.gap .sr6tw-help-btn {
+    border-color: var(--sr6tw-gap);
+    color: var(--sr6tw-gap);
+}
+
+.sr6-turn-wizard .sr6tw-tip {
+    display: none;
+    position: absolute;
+    top: calc(100% + 0.15rem);
+    left: 0;
+    right: 0;
+    width: auto;
+    z-index: 20;
+    padding: 0.55rem 0.7rem 0.65rem;
+    background: #1c1c20;
+    color: inherit;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.35;
+}
+
+.sr6-turn-wizard .sr6tw-tip::before {
+    content: "";
+    position: absolute;
+    top: -0.4rem;
+    left: 0;
+    right: 0;
+    height: 0.4rem;
+}
+
+.sr6-turn-wizard .sr6tw-help:hover .sr6tw-tip,
+.sr6-turn-wizard .sr6tw-help:focus-within .sr6tw-tip {
+    display: block;
+}
+
+.sr6-turn-wizard .sr6tw-tip strong {
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.sr6-turn-wizard .sr6tw-tip p {
+    margin: 0.35rem 0 0;
+}
+
+.sr6-turn-wizard .sr6tw-tip button {
+    margin-top: 0.45rem;
 }
 
 .sr6-turn-wizard .sr6tw-lead {
@@ -107,8 +231,24 @@
 .sr6-turn-wizard .sr6tw-choices {
     display: flex;
     flex-direction: column;
-    gap: 0.4rem;
-    margin: 0.4rem 0 0.8rem;
+    gap: 0.25rem;
+    margin: 0.3rem 0 0.65rem;
+}
+
+.sr6-turn-wizard .sr6tw-choice-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.sr6-turn-wizard .sr6tw-choice-row .sr6tw-choice {
+    flex: 1 1 auto;
+}
+
+.sr6-turn-wizard .sr6tw-choice-row .sr6tw-tip {
+    left: auto;
+    right: 0;
+    width: min(20rem, calc(100vw - 4rem));
 }
 
 .sr6-turn-wizard button.sr6tw-choice {
@@ -120,7 +260,7 @@
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--color-border-light-tertiary, rgba(255, 255, 255, 0.18));
     border-radius: 6px;
-    padding: 0.5rem 0.65rem;
+    padding: 0.28rem 0.55rem;
 }
 
 .sr6-turn-wizard button.sr6tw-choice:hover {
@@ -141,6 +281,26 @@
 .sr6-turn-wizard .sr6tw-choice-hint {
     color: var(--color-text-secondary, #c9c3b6);
     font-size: 0.82rem;
+    font-weight: 400;
+    line-height: 1.3;
+}
+
+.sr6-turn-wizard .sr6tw-notice {
+    margin: 0.15rem 0 0.45rem;
+    color: var(--sr6tw-gap);
+    font-size: 0.86rem;
+    line-height: 1.35;
+}
+
+.sr6-turn-wizard .sr6tw-steps {
+    margin: 0.15rem 0 0.55rem;
+    padding-left: 1.25rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.sr6-turn-wizard .sr6tw-steps li + li {
+    margin-top: 0.2rem;
 }
 
 .sr6-turn-wizard .sr6tw-badge {

@@ -18,8 +18,8 @@ function eden(paragraphs) {
     return { tone: "eden", heading: "On the Eden sheet", paragraphs };
 }
 
-function gap(paragraphs) {
-    return { tone: "gap", heading: "What you still settle at the table", paragraphs };
+function gap(paragraphs, cite) {
+    return { tone: "gap", heading: "What you still settle at the table", paragraphs, cite };
 }
 
 export const TOPICS = {
@@ -38,7 +38,7 @@ export const TOPICS = {
             ]),
             gap([
                 "If the world is using You Can't Dodge Bullets, Dodge moves the attack's threshold instead of adding dice. The numbers are on Companion pp. 151–152. Type the change into the attack dialog. Eden already adds one threshold point per range band past Close.",
-            ]),
+            ], companion(151)),
         ],
     ),
     block: topic(
@@ -54,7 +54,7 @@ export const TOPICS = {
             ]),
             gap([
                 "The Wrest Edge action replaces this defense with Close Combat + Agility against the attacker's Strength. That action is not in Eden's Edge list. See Edge in this wizard.",
-            ]),
+            ], core(47)),
         ],
     ),
     "full-defense": topic(
@@ -86,7 +86,7 @@ export const TOPICS = {
             ]),
             gap([
                 "Tactical Roll is a 1-Edge action on Hit the Dirt. It drops the prone penalty on the melee attack that round, and the prone penalty against Close and Near attacks next round. It is not in Eden's Edge list.",
-            ]),
+            ], core(47)),
         ],
         {
             choices: [

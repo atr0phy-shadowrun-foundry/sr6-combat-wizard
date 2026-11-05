@@ -23,4 +23,6 @@ Then enable **Shadowrun Turn Wizard** in a world that already has **Shadowrun 6t
 
 Open it from the route icon on the token controls, the **Combat Turn Wizard** macro (created the first time a gamemaster loads the world), or Shift+Alt+T.
 
+A clickable mock of the window, with no Foundry server, is `preview/index.html`. Open that file in a browser.
+
 `url`, `manifest`, and `download` in `module.json` stay empty until this repo has a remote and a release zip. Foundry's "Install Module" button uses those. A git clone into `Data/modules` is enough to play.

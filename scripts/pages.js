@@ -1,9 +1,11 @@
 import { actionAllotment, classifyGear, enabledFireModes, sumInitiativeDice } from "./classify.js";
 import { packLabel, searchPack } from "./compendiums.js";
+import { buildProvision, findByGenesis, secondWeaponPlans } from "./provisions.js";
 import { EDGE_ACTIONS, EDGE_BOOSTS, TOPICS } from "./topics.js";
 import { readTally } from "./tally.js";
 
 const CLEAR = "itemId,fireMode,burst,faArea,topic,skill,spec,matrixId,pool,kind";
+const GUIDE_CLEAR = `${CLEAR},guide,guideStep`;
 
 const FIRE_MODE_COPY = {
     SS: {
@@ -56,7 +58,7 @@ export function actorCandidates() {
 
 export async function buildPage(state) {
     const actor = resolveActor(state);
-    const page = actor ? await renderPage(state, actor) : noActorPage();
+    const page = decorateGuide(actor ? await renderPage(state, actor) : noActorPage(), state);
     const actors = actorCandidates().map((candidate) => ({
         uuid: candidate.uuid,
         name: candidate.name,
@@ -68,7 +70,11 @@ export async function buildPage(state) {
         actorName: actor?.name ?? "No character",
         actors,
         multipleActors: actors.length > 1,
-        crumb: [...(state.history ?? []).map((entry) => entry.label).filter(Boolean), state.label].filter(Boolean),
+        crumb: (state.history ?? []).map((entry, index) => ({
+            label: entry.label || "Start",
+            index,
+        })),
+        crumbLabel: state.label || "",
         economy: actor ? economy(actor) : null,
         targets: targetNames(),
         showBack: (state.history ?? []).length > 0,
@@ -97,6 +103,11 @@ async function renderPage(state, actor) {
     const id = state.pageId;
     if (id === "compendium") return compendiumPage(state.data);
     if (id === "home") return homePage(actor);
+    if (id === "my-turn") return myTurnPage();
+    if (id === "my-turn-major") return myTurnMajorPage();
+    if (id === "my-turn-after") return myTurnAfterPage();
+    if (id === "incoming") return incomingPage();
+    if (id === "incoming-do") return incomingDoPage(actor, state.data.topic);
     if (id === "attack") return attackKindPage(actor);
     if (id === "weapons") return weaponListPage(actor, state.data.kind);
     if (id === "fire-mode") return fireModePage(actor, state.data);
@@ -120,7 +131,7 @@ async function renderPage(state, actor) {
     if (id === "other") return otherPage(actor);
     if (id === "skills") return skillsPage(actor);
     if (id === "skill-confirm") return skillConfirmPage(actor, state.data);
-    if (id === "topic") return topicPage(state.data.topic, actor);
+    if (id === "topic") return topicPage(state.data.topic, actor, state.data);
     return {
         title: "Missing page",
         lead: "That step is not in the wizard. Go back to the start.",
@@ -133,19 +144,28 @@ function homePage(actor) {
     return {
         kicker: "Combat turn",
         title: "What are you doing?",
-        lead: `${actor.name} is the character on this page. Target a token before an attack or a spell. The tally is a reminder for this turn. The sheet does not spend actions.`,
-        groups: [{
-            choices: [
-                choice("Attack", "A weapon, a fist, a thrown weapon, a grenade.", { go: "attack", clear: CLEAR, badge: "Major" }),
-                choice("Cast a spell", "Combat spells and everything else on the spell list.", { go: "spells", kind: "any", clear: CLEAR, badge: "Major" }),
-                choice("Defend or get clear", "Dodge, Block, Full Defense, Hit the Dirt, a blast.", { go: "defend", clear: CLEAR }),
-                choice("Move, aim, cover, reload", "The minor and major actions that set up the attack.", { go: "position", clear: CLEAR }),
-                choice("Spend Edge", "Boosts and Edge actions, including the ones the dialog leaves out.", { go: "edge", clear: CLEAR }),
-                choice("Other magic", "Adept powers, spirits, a focus, astral perception.", { go: "magic", clear: CLEAR }),
-                choice("Matrix, a complex form, or a drone", "Matrix actions from the system list, plus forms on the sheet.", { go: "matrix", clear: CLEAR }),
-                choice("Something else", "A skill, teamwork, first aid, a grapple, an off-hand penalty.", { go: "other", clear: CLEAR }),
-            ],
-        }],
+        groups: [
+            {
+                heading: "Walk me through it",
+                choices: [
+                    choice("It's my turn", "A minor if you want one, then an attack or a spell, then anything left.", { go: "my-turn", guide: "turn", guideStep: "setup", clear: CLEAR, cite: core(40) }),
+                    choice("Someone is attacking me", "Dodge, Block, Full Defense, or Hit the Dirt.", { go: "incoming", guide: "incoming", clear: CLEAR, cite: core(42) }),
+                ],
+            },
+            {
+                heading: "I know the action",
+                choices: [
+                    choice("Attack", "A weapon, a fist, a thrown weapon, a grenade.", { go: "attack", clear: GUIDE_CLEAR, badge: "Major", cite: core(40) }),
+                    choice("Cast a spell", "Combat spells and everything else on the spell list.", { go: "spells", kind: "any", clear: GUIDE_CLEAR, badge: "Major", cite: core(130) }),
+                    choice("Defend or get clear", "Minor actions, Full Defense, and the Edge actions that ride on them.", { go: "defend", clear: GUIDE_CLEAR, cite: core(42) }),
+                    choice("Move, aim, cover, reload", "Minor actions, major actions, and Fire from Cover.", { go: "position", clear: GUIDE_CLEAR, cite: core(41) }),
+                    choice("Spend Edge", "Boosts and Edge actions, including the ones the dialog leaves out.", { go: "edge", clear: GUIDE_CLEAR, cite: core(46) }),
+                    choice("Other magic", "Adept powers, spirits, a focus, astral perception.", { go: "magic", clear: GUIDE_CLEAR, cite: core(127) }),
+                    choice("Matrix, a complex form, or a drone", "Matrix actions from the system list, plus forms on the sheet.", { go: "matrix", clear: GUIDE_CLEAR, cite: core(174) }),
+                    choice("Something else", "A skill, teamwork, first aid, a grapple, an off-hand penalty.", { go: "other", clear: GUIDE_CLEAR, cite: core(43) }),
+                ],
+            },
+        ],
         blocks: [
             block("rules", "How a round is built", [
                 "Everyone acts once. You start with 1 major action and 1 minor action, plus 1 extra minor for each initiative die, and you do not start with more than 5 minor actions.",
@@ -153,25 +173,219 @@ function homePage(actor) {
                 "Minor actions are usually automatic. An attack, a spell, and most other majors roll.",
             ], core(40)),
         ],
-        footnote: "Token controls have a route icon for this window. The world macro is Combat Turn Wizard. The default key is Shift+Alt+T, and Configure Controls can change it.",
     };
+}
+
+function myTurnPage() {
+    return {
+        kicker: "Your turn",
+        title: "A minor, if you want one",
+        notice: "You can skip this. The next step is the attack or the spell.",
+        groups: [{
+            choices: [
+                topicChoice("Move", "10 meters, once.", "move", "Minor"),
+                topicChoice("Take Aim", "+1 die on the attack that follows.", "take-aim", "Minor"),
+                topicChoice("Take Cover", "Cover I through IV.", "take-cover", "Minor"),
+                topicChoice("Drop Prone", "Go prone without the dive bonus.", "drop-prone", "Minor"),
+                choice("Skip to the attack or spell", "Spend the major on the main action.", { go: "my-turn-major", guideStep: "major" }),
+            ],
+        }],
+    };
+}
+
+function myTurnMajorPage() {
+    return {
+        kicker: "Your turn",
+        title: "The main action",
+        notice: "This spends your major.",
+        groups: [{
+            choices: [
+                choice("Attack", "A weapon, a fist, a thrown weapon, a grenade.", { go: "attack", badge: "Major", cite: core(40) }),
+                choice("Cast a spell", "A formula on the sheet.", { go: "spells", kind: "any", badge: "Major", cite: core(130) }),
+                topicChoice("Sprint", "15 meters plus hits, instead of a normal move.", "sprint", "Major"),
+                choice("Something else", "Reload, a skill, or another major.", { go: "other", cite: core(43) }),
+            ],
+        }],
+    };
+}
+
+function myTurnAfterPage() {
+    return {
+        kicker: "Your turn",
+        title: "Anything left",
+        notice: "A minor, if you still have one. Then the turn is done.",
+        groups: [{
+            choices: [
+                topicChoice("Take Aim", "+1 die if you have not aimed yet.", "take-aim", "Minor"),
+                choice("Reload a smartgun", "The next clip is in hand.", { go: "reload", kind: "smart", badge: "Minor", cite: core(43) }),
+                topicChoice("Drop what you're holding", "Anytime minor.", "drop-object", "Minor"),
+                choice("That's the turn", "Back to the start.", { go: "home", clear: "guide,guideStep" }),
+            ],
+        }],
+    };
+}
+
+function incomingPage() {
+    return {
+        kicker: "Defense",
+        title: "Someone is attacking me",
+        notice: "Pick one. The next page is the clicks on the attack card.",
+        groups: [{
+            choices: [
+                choice("Dodge", "Add Athletics to this one Defense test.", { go: "incoming-do", topic: "dodge", badge: "Minor", cite: ruleCite("dodge") }),
+                choice("Block", "Add Close Combat to this one melee Defense test.", { go: "incoming-do", topic: "block", badge: "Minor", cite: ruleCite("block") }),
+                choice("Full Defense", "Add Willpower to every Defense test this round.", { go: "incoming-do", topic: "full-defense", badge: "Major", cite: ruleCite("full-defense") }),
+                choice("Hit the Dirt", "Prone, +2 Defense, then −2 on your tests.", { go: "incoming-do", topic: "hit-the-dirt", badge: "Minor", cite: ruleCite("hit-the-dirt") }),
+            ],
+        }],
+    };
+}
+
+function incomingDoPage(actor, topic) {
+    const plans = {
+        dodge: {
+            title: "Dodge",
+            track: "minor",
+            steps: [
+                "Open the attack card in chat.",
+                "Press Defense.",
+                modifierLine(skillRank(actor, "athletics"), "Athletics"),
+            ],
+        },
+        block: {
+            title: "Block",
+            track: "minor",
+            steps: [
+                "Open the attack card in chat.",
+                "Press Defense.",
+                modifierLine(skillRank(actor, "close_combat"), "Close Combat"),
+            ],
+        },
+        "full-defense": {
+            title: "Full Defense",
+            track: "major",
+            steps: [
+                "Open the attack card in chat.",
+                "Press Defense.",
+                modifierLine(attributePool(actor, "wil"), "Willpower"),
+                "Use that same number on every Defense test this round.",
+            ],
+        },
+        "hit-the-dirt": {
+            title: "Hit the Dirt",
+            track: "minor",
+            status: "prone",
+            steps: [
+                "Open the attack card in chat.",
+                "Press Defense.",
+                "Type +2 into the modifier.",
+                "You are prone. Later tests take −2 until you stand up.",
+            ],
+        },
+    };
+    const plan = plans[topic];
+    if (!plan) return { title: "Missing defense", lead: "Go back.", groups: [], blocks: [] };
+    const choices = [
+        choice(plan.track === "major" ? "Mark the major" : "Mark the minor", "Count it on the tally at the top.", {
+            action: "tally",
+            track: plan.track,
+            delta: "1",
+        }),
+    ];
+    if (plan.status) {
+        choices.push(choice("Mark prone", "Set the prone status on the token.", {
+            action: "status",
+            status: plan.status,
+            cite: core(42),
+        }));
+    }
+    return {
+        kicker: "Defense",
+        title: plan.title,
+        steps: plan.steps,
+        groups: [{ heading: "Then mark it", choices }],
+        blocks: [],
+    };
+}
+
+function modifierLine(value, name) {
+    if (value == null) return `Type your ${name} into the modifier.`;
+    return `Type ${value} into the modifier. That is ${name}.`;
+}
+
+function skillRank(actor, id) {
+    const skill = actor?.system?.skills?.[id];
+    if (!skill) return null;
+    return Number(skill.points || 0) + Number(skill.modifier || 0) + Number(skill.augment || 0);
+}
+
+function attributePool(actor, id) {
+    const attr = actor?.system?.attributes?.[id];
+    if (!attr) return null;
+    if (attr.pool != null && attr.pool !== "") return Number(attr.pool);
+    return Number(attr.base || 0) + Number(attr.mod || 0) + Number(attr.augment || 0);
+}
+
+function decorateGuide(page, state) {
+    if (state.data?.guide !== "turn") return page;
+    const step = state.data.guideStep;
+    const id = state.pageId;
+    let extra = null;
+    if (step === "setup" && id !== "my-turn") {
+        extra = choice("Then your main action", "Attack or cast. That spends the major.", {
+            go: "my-turn-major",
+            guideStep: "major",
+        });
+    } else if (step === "major" && ["topic", "attack-confirm", "spell-confirm", "skill-confirm"].includes(id)) {
+        extra = choice("Then anything you have left", "A minor, if one is still open.", {
+            go: "my-turn-after",
+            guideStep: "close",
+        });
+    }
+    if (!extra) return page;
+    return { ...page, groups: [...(page.groups ?? []), { choices: [extra] }] };
 }
 
 function defendPage() {
     return {
         kicker: "Defense",
         title: "Defend or get clear",
-        lead: "These can be taken when it is not your turn, as long as you still have the action. The real Defense roll is the button on the attack card. This page tells you what to type into it.",
-        groups: [{
-            choices: [
-                topicChoice("Dodge", "Minor. Add Athletics to one Defense test.", "dodge"),
-                topicChoice("Block", "Minor. Add Close Combat to one melee Defense test.", "block"),
-                topicChoice("Full Defense", "Major. Add Willpower to every Defense test this round.", "full-defense"),
-                topicChoice("Hit the Dirt", "Minor. Prone, +2 Defense, then −2 on your tests.", "hit-the-dirt"),
-                topicChoice("Avoid Incoming", "Minor. Leave a blast or a gas cloud.", "avoid"),
-                topicChoice("Intercept", "Minor plus the attack. Someone entered Close.", "intercept"),
-            ],
-        }],
+        lead: "The real Defense roll is the button on the attack card. This page is sorted by what the action costs. You can take an anytime action when it is not your turn, if you still have it.",
+        leadCite: core(42),
+        groups: [
+            {
+                heading: "Minor action",
+                note: "Anytime. One Defense test, unless the action says otherwise.",
+                choices: [
+                    topicChoice("Dodge", "Add Athletics to one Defense test.", "dodge", "Minor"),
+                    topicChoice("Block", "Add Close Combat to one melee Defense test.", "block", "Minor"),
+                    topicChoice("Hit the Dirt", "Prone, +2 Defense, then −2 on your tests.", "hit-the-dirt", "Minor"),
+                    topicChoice("Avoid Incoming", "Leave a blast or a gas cloud.", "avoid", "Minor"),
+                ],
+            },
+            {
+                heading: "Major action",
+                note: "Anytime. This spends the major for the round.",
+                choices: [
+                    topicChoice("Full Defense", "Add Willpower to every Defense test this round.", "full-defense", "Major"),
+                ],
+            },
+            {
+                heading: "Minor action and a major action",
+                note: "The minor is Intercept. The major is the melee attack.",
+                choices: [
+                    topicChoice("Intercept", "Melee attack when someone enters Close.", "intercept", "Minor + Major"),
+                ],
+            },
+            {
+                heading: "Edge action",
+                note: "An Edge action does not spend a minor or a major. It attaches to the action in the hint. One Edge spend per action.",
+                choices: [
+                    choice("Tactical Roll", "1 Edge. Rides on Hit the Dirt.", { go: "edge-action", topic: "tactical_roll", badge: "1 Edge", cite: core(47) }),
+                    choice("Wrest", "2 Edge. Replaces Block.", { go: "edge-action", topic: "wrest", badge: "2 Edge", cite: core(47) }),
+                ],
+            },
+        ],
         blocks: [
             block("rules", "Soak is the next card", [
                 "After a hit, the defender rolls Body unless the damage says otherwise. Each hit cancels one point. The soak button is on the attack card, and Edge can still be spent there if this action has not spent Edge yet.",
@@ -186,6 +400,7 @@ function attackKindPage(actor) {
         kicker: "Attack · major · your turn",
         title: "How are you attacking?",
         lead: "One attack is one major action. Called shots, multiple attacks, and aim are minors that ride along with it. You will get those on the last page.",
+        leadCite: core(40),
         groups: [{
             choices: [
                 weaponChoice("Melee", "Close combat, unarmed, a cyber weapon.", "melee", counts),
@@ -220,7 +435,8 @@ function weaponListPage(actor, kind) {
                 go: "topic",
                 topic: "grenade-ordnance",
                 itemId: item.id,
-                badge: "Gap",
+                badge: "Finish in chat",
+                cite: core(114),
             });
         }
         const modes = enabledFireModes(item.system);
@@ -229,7 +445,8 @@ function weaponListPage(actor, kind) {
             go: ranged && modes.length ? "fire-mode" : "attack-confirm",
             itemId: item.id,
             kind,
-            badge: modes.length ? modes.join(" ") : (item.system.skill ? "" : "No skill"),
+            badge: modes.length ? modeWords(modes) : (item.system.skill ? "" : "No skill"),
+            cite: kindCite(kind),
         });
     });
     const blocks = [];
@@ -261,6 +478,7 @@ function weaponListPage(actor, kind) {
         kicker: "Attack",
         title,
         lead,
+        leadCite: kindCite(kind),
         groups: choices.length ? [{ choices }] : [],
         blocks,
     };
@@ -287,8 +505,7 @@ function fireModePage(actor, data) {
             "High Strength Reduces Recoil, when that world setting is on, can shrink a two-handed gun's Attack Rating penalty. The weapon needs its two-handed flag.",
         ], core(108)),
     ];
-    const accessoryNote = underbarrelNote(item);
-    if (accessoryNote) blocks.push(block("gap", "Second barrel", [accessoryNote]));
+    const barrel = secondBarrelSection(actor, item);
     if (!choices.length) {
         blocks.push(block("gap", "No fire modes on the item", [
             "The SS, SA, BF, and FA boxes are all off. The attack dialog will not show a fire-mode selector. Turn on the modes this weapon has, or continue and treat it as a single attack.",
@@ -302,8 +519,10 @@ function fireModePage(actor, data) {
         kicker: item.name,
         title: "Which fire mode?",
         lead: "Eden reads the mode boxes on the weapon. The attack dialog starts on the mode you pick here.",
+        leadCite: core(108),
         groups: [
             { choices },
+            ...(barrel ? [barrel] : []),
             {
                 heading: "Compendium",
                 choices: [compendiumChoice("Look up a weapon mod", "Smartgun, underbarrel, and other mods in shadowrun-data.", "weaponMods", "any")],
@@ -319,11 +538,12 @@ function faAreaPage(actor, data) {
         kicker: item?.name ?? "Full auto",
         title: "How wide is the full-auto burst?",
         lead: "Ten rounds. Each meter past a 1-meter radius is another −2 Attack Rating. Three or more targets require full auto.",
+        leadCite: core(108),
         groups: [{
             choices: [1, 2, 3, 4, 5, 6].map((meters) => choice(
                 `${meters}m radius`,
                 meters === 1 ? "The base full-auto penalty only." : `Attack Rating −${6 + (meters - 1) * 2}.`,
-                { go: "attack-confirm", itemId: data.itemId, fireMode: "FA", faArea: String(meters) },
+                { go: "attack-confirm", itemId: data.itemId, fireMode: "FA", faArea: String(meters), cite: core(108) },
             )),
         }],
         blocks: [
@@ -364,12 +584,11 @@ function attackConfirmPage(actor, data) {
     ];
     const warnings = attackWarnings(data, targets);
     if (warnings.length) blocks.push(block("gap", "Before you click", warnings));
-    const accessoryNote = underbarrelNote(item);
-    if (accessoryNote) blocks.push(block("gap", "Second barrel", [accessoryNote]));
+    const barrel = secondBarrelSection(actor, item);
     blocks.push(block("eden", "Edge on this roll", [
         "One Edge spend per action, either a boost or an Edge action. The dialog's Edge list applies several boosts. Edge actions are listed there, and their special effect is still a table call. The Edge cost of an action is worth confirming on the sheet after the roll.",
         "Attack Rating versus Defense Rating: a gap of 4 or more gives 1 Edge to the higher side. Area attacks use the highest Defense Rating. Bonus Edge from the situation is still capped. The world setting max Edge per round is the cap Eden is using.",
-    ]));
+    ], core(45)));
     if (!item.system.skill) {
         blocks.push(block("gap", "No skill on the weapon", [
             "Open the item and set the skill before this roll will start. Close Combat, Firearms, Athletics, Engineering, or Exotic Weapons.",
@@ -379,7 +598,9 @@ function attackConfirmPage(actor, data) {
         kicker: item.name,
         title: `Attack with ${item.name}`,
         lead: modeLine,
-        groups: [],
+        leadCite: data.fireMode ? core(108) : core(104),
+        notice: data.fireMode ? "Leave the fire mode in the dialog. Changing it throws away this choice." : "",
+        groups: barrel ? [barrel] : [],
         blocks,
         launch: item.system.skill
             ? { type: "weapon", label: "Open the attack roll" }
@@ -415,6 +636,7 @@ function spellListPage(actor, kind) {
                 go: "spell-confirm",
                 itemId: item.id,
                 kind: "ritual",
+                cite: core(143),
                 badge: "Ritual",
             })),
         });
@@ -436,6 +658,7 @@ function spellListPage(actor, kind) {
         kicker: "Cast spell · major · your turn",
         title: "Which spell?",
         lead: "Casting is Sorcery + Magic. Adjust the spell first, up to your Magic or your Sorcery, whichever is higher.",
+        leadCite: core(130),
         groups: groups.filter((group) => group.choices.length),
         blocks,
     };
@@ -449,6 +672,7 @@ function spellConfirmPage(actor, data) {
             kicker: "Ritual",
             title: item.name,
             lead: "Ritual spellcasting is Sorcery with the ritual specialization. It is not one pass in a combat round.",
+            leadCite: core(143),
             blocks: [
                 block("rules", "What the book asks", [
                     "A ritual has a leader, a foundation, reagents, and a seal. Failure has its own consequences. Printed pp. 143–144.",
@@ -491,12 +715,13 @@ function spellConfirmPage(actor, data) {
     if (system.duration === "sustained") {
         blocks.push(block("gap", "Shift Area", [
             "The spell dialog adjusts Amp Up and area radius. It does not spend the Shift Area minor. Mark that minor yourself when you move an area you are already sustaining.",
-        ]));
+        ], core(130)));
     }
     return {
         kicker: combat ? "Combat spell" : "Spell",
         title: item.name,
         lead: area ? "Area spell. One casting, everyone in the area." : "Single target, unless the spell's own text says otherwise.",
+        leadCite: combat ? core(131) : core(130),
         blocks,
         launch: { type: "spell", label: "Open the spell roll" },
     };
@@ -508,20 +733,34 @@ function magicPage(actor) {
     return {
         kicker: "Magic",
         title: "Besides a formula",
-        lead: "These are the other awakened actions that show up in a fight. Several of them stop at a skill roll.",
-        groups: [{
-            choices: [
-                choice("Adept powers", powers ? `${powers} on the sheet.` : "None on the sheet. The compendium is one step down.", { go: "adept", badge: powers ? "" : "Empty" }),
-                choice("Counterspell", "Major, anytime. Sorcery versus the spell.", { go: "topic", topic: "counterspell" }),
-                choice("Summon a spirit", "Major. Services are tracked at the table.", { go: "topic", topic: "summon" }),
-                choice("Command a spirit", "Minor. Spends a service.", { go: "topic", topic: "command-spirit" }),
-                choice("Banish a spirit", "Major. Opposed, then drain.", { go: "topic", topic: "banish" }),
-                choice("Activate a focus", foci.length ? foci.map((item) => item.name).join(", ") : "No foci on the sheet.", { go: "topic", topic: "focus" }),
-                compendiumChoice("Look up a focus", "Foci compendium in shadowrun-data.", "foci", "any"),
-                choice("Shift perception", "Minor. Astral or physical.", { go: "topic", topic: "shift-perception" }),
-                choice("Astral projection", "Major. Its own initiative.", { go: "topic", topic: "astral-projection" }),
-            ],
-        }],
+        lead: "Sorted by the action each one costs. Adept powers are their own list, because each power stores its own activation.",
+        leadCite: core(40),
+        groups: [
+            {
+                heading: "Minor action",
+                choices: [
+                    topicChoice("Command a spirit", "Spends a service.", "command-spirit", "Minor"),
+                    topicChoice("Activate a focus", foci.length ? foci.map((item) => item.name).join(", ") : "No foci on the sheet.", "focus", "Minor"),
+                    topicChoice("Shift perception", "Astral or physical.", "shift-perception", "Minor"),
+                ],
+            },
+            {
+                heading: "Major action",
+                choices: [
+                    topicChoice("Counterspell", "Anytime. Sorcery versus the spell.", "counterspell", "Major"),
+                    topicChoice("Summon a spirit", "Services are tracked at the table.", "summon", "Major"),
+                    topicChoice("Banish a spirit", "Opposed, then drain.", "banish", "Major"),
+                    topicChoice("Astral projection", "Its own initiative.", "astral-projection", "Major"),
+                ],
+            },
+            {
+                heading: "Depends on the power",
+                choices: [
+                    choice("Adept powers", powers ? `${powers} on the sheet, grouped by activation.` : "None on the sheet. The compendium is one step down.", { go: "adept", badge: powers ? "" : "Empty", cite: core(156) }),
+                    compendiumChoice("Look up a focus", "Foci compendium in shadowrun-data.", "foci", "any"),
+                ],
+            },
+        ],
         blocks: [],
     };
 }
@@ -531,11 +770,10 @@ function adeptPage(actor) {
     return {
         kicker: "Adept",
         title: "Powers on the sheet",
-        lead: "A power's activation is passive, a minor action, or a major action. The item stores that. Using it does not roll unless the power says to make a test.",
+        lead: "Each power is passive, a minor action, or a major action. The item stores that. Using it does not roll unless the power says to make a test.",
+        leadCite: core(156),
         groups: [
-            {
-                choices: powers.map((item) => choice(item.name, adeptHint(item), { go: "adept-detail", itemId: item.id })),
-            },
+            ...adeptGroups(powers),
             {
                 heading: "Compendium",
                 choices: [compendiumChoice("Look up an adept power", "Adept powers compendium in shadowrun-data.", "adept", "any")],
@@ -554,29 +792,40 @@ function positionPage() {
     return {
         kicker: "Set up the turn",
         title: "Move, aim, cover, reload",
+        lead: "Sorted by what the action costs. A minor on your turn is not the same list as a minor you can take when it is not your turn.",
+        leadCite: core(41),
         groups: [{
-            heading: "Minor, on your turn",
+            heading: "Minor action",
+            note: "On your turn.",
             choices: [
-                topicChoice("Move", "10 meters, once.", "move"),
-                topicChoice("Take Aim", "+1 die, stacks to Willpower.", "take-aim"),
-                topicChoice("Take Cover", "Cover I–IV on the token.", "take-cover"),
-                topicChoice("Drop Prone", "Prone without the dive bonus.", "drop-prone"),
-                topicChoice("Stand Up", "Clear prone.", "stand-up"),
-                topicChoice("Quick Draw", "A small weapon, with the attack.", "quick-draw"),
-                choice("Reload a smartgun", "Minor, if the next clip is in hand.", { go: "reload", kind: "smart", badge: "Minor" }),
+                topicChoice("Move", "10 meters, once.", "move", "Minor"),
+                topicChoice("Take Aim", "+1 die, stacks to Willpower.", "take-aim", "Minor"),
+                topicChoice("Take Cover", "Cover I–IV on the token.", "take-cover", "Minor"),
+                topicChoice("Drop Prone", "Prone without the dive bonus.", "drop-prone", "Minor"),
+                topicChoice("Stand Up", "Clear prone.", "stand-up", "Minor"),
+                topicChoice("Quick Draw", "A small weapon, with the attack.", "quick-draw", "Minor"),
+                choice("Reload a smartgun", "The next clip is in hand.", { go: "reload", kind: "smart", badge: "Minor", cite: core(43) }),
             ],
         }, {
-            heading: "Major, on your turn",
+            heading: "Major action",
+            note: "On your turn.",
             choices: [
-                topicChoice("Sprint", "15 meters plus hits.", "sprint"),
-                topicChoice("Ready Weapon", "Draw or stow.", "ready-weapon"),
-                topicChoice("Pick up or put down", "The careful version of drop.", "pick-up"),
-                choice("Reload a weapon", "Anything that is not a smartgun reload.", { go: "reload", kind: "plain", badge: "Major" }),
+                topicChoice("Sprint", "15 meters plus hits.", "sprint", "Major"),
+                topicChoice("Ready Weapon", "Draw or stow.", "ready-weapon", "Major"),
+                topicChoice("Pick up or put down", "The careful version of drop.", "pick-up", "Major"),
+                choice("Reload a weapon", "Anything other than a smartgun reload.", { go: "reload", kind: "plain", badge: "Major", cite: core(43) }),
             ],
         }, {
-            heading: "Anytime, if you still have the action",
+            heading: "Minor action, anytime",
+            note: "You can take this when it is not your turn, if you still have the minor.",
             choices: [
-                topicChoice("Drop Object", "Let go. Minor.", "drop-object"),
+                topicChoice("Drop Object", "Let go of what you are holding.", "drop-object", "Minor"),
+            ],
+        }, {
+            heading: "Edge action",
+            note: "This does not spend a minor or a major. It attaches to the ranged attack.",
+            choices: [
+                choice("Fire from Cover", "2 Edge. Shoot from Cover IV without the minor to lean out.", { go: "edge-action", topic: "fire_from_cover", badge: "2 Edge", cite: core(47) }),
             ],
         }],
         blocks: [],
@@ -589,6 +838,7 @@ function reloadPage(actor) {
         kicker: "Reload",
         title: "Which weapon?",
         lead: "A smartgun reload is a minor when the next clip is in hand. Any other reload is a major. Eden's ammo button fills the weapon to capacity and does not know which action you spent.",
+        leadCite: core(43),
         groups: [{
             choices: weapons.map((item) => choice(
                 item.name,
@@ -612,10 +862,16 @@ function reloadHowPage(actor, data) {
         lead: cap
             ? `This sets ammo to ${cap}. Wireless smartgun mods can also grant a bonus minor on a turn you reload. Count that only when the mod is installed and wireless.`
             : "This weapon has no ammo capacity, so the button will not write a number. Mark the action anyway.",
+        leadCite: core(43),
         groups: [{
+            heading: "Minor action",
             choices: [
-                { label: "Smartgun reload", hint: "Minor. Next clip is in hand.", action: "refill", itemId: item.id, track: "minor", badge: "Minor" },
-                { label: "Ordinary reload", hint: "Major.", action: "refill", itemId: item.id, track: "major", badge: "Major" },
+                { label: "Smartgun reload", hint: "The next clip is in hand.", action: "refill", itemId: item.id, track: "minor", badge: "Minor", cite: core(43) },
+            ],
+        }, {
+            heading: "Major action",
+            choices: [
+                { label: "Ordinary reload", hint: "Any reload that is not a smartgun reload.", action: "refill", itemId: item.id, track: "major", badge: "Major", cite: core(43) },
             ],
         }],
         blocks: [
@@ -630,7 +886,7 @@ function edgePage() {
     const boosts = Object.entries(EDGE_BOOSTS).map(([id, boost]) => choice(
         boostName(id),
         `${boost.cost} Edge. ${boost.when}.`,
-        { go: "edge-boost", topic: id, badge: String(boost.cost) },
+        { go: "edge-boost", topic: id, badge: String(boost.cost), cite: core(46) },
     ));
     const inDialog = [];
     const bookOnly = [];
@@ -639,6 +895,7 @@ function edgePage() {
             go: "edge-action",
             topic: id,
             badge: action.inDialog ? "In the dialog" : "Book only",
+            cite: core(47),
         });
         (action.inDialog ? inDialog : bookOnly).push(entry);
     }
@@ -646,6 +903,7 @@ function edgePage() {
         kicker: "Edge",
         title: "One spend on this action",
         lead: "A boost or an Edge action, not both. The same boost can be bought more than once. You cannot spend on your roll and the opponent's roll as that one expenditure. Nothing reduces an Edge action's cost to zero.",
+        leadCite: core(44),
         groups: [
             { heading: "Boosts", choices: boosts },
             { heading: "Edge actions Eden lists on the roll", choices: inDialog },
@@ -667,6 +925,7 @@ function edgeBoostPage(id) {
         kicker: `${boost.cost} Edge`,
         title: boostName(id),
         lead: boost.when,
+        leadCite: core(46),
         blocks: [
             block("rules", "Effect", [boost.text, "Declare a pre-roll boost before the dice. A post-roll boost waits until you see the faces."], core(46)),
             edenBlock([
@@ -685,6 +944,7 @@ function edgeActionPage(id) {
         kicker: `${action.cost} Edge · ${action.attached}`,
         title: actionName(id),
         lead: "An Edge action does not cost a minor or a major. It is declared before the test it attaches to.",
+        leadCite: core(47),
         blocks: [
             block("rules", "Effect", [action.text], core(47)),
             edenBlock(action.inDialog ? [
@@ -706,15 +966,26 @@ function matrixPage(actor) {
         kicker: "Matrix and drones",
         title: "Where is this action happening?",
         lead: "A matrix pass is its own initiative. If the combatant is flagged astral or matrix, the tally at the top uses that initiative branch.",
+        leadCite: core(174),
         groups: [
             {
-                heading: "On the sheet",
+                heading: "Minor action",
                 choices: [
-                    choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", { go: "forms" }),
+                    topicChoice("Command a drone", "Give the drone an order.", "command-drone", "Minor"),
+                ],
+            },
+            {
+                heading: "Major action",
+                choices: [
+                    choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", { go: "forms", badge: "Major", cite: core(185) }),
+                    topicChoice("Jump in", "Then use the vehicle's weapons.", "jump-in", "Major"),
+                ],
+            },
+            {
+                heading: "Compendium",
+                choices: [
                     compendiumChoice("Look up a complex form", "Complex forms compendium in shadowrun-data.", "forms", "any"),
                     compendiumChoice("Look up a drone", "Drones compendium in shadowrun-data. Add it, then command that actor.", "drones", "any"),
-                    topicChoice("Command a drone", "Minor.", "command-drone"),
-                    topicChoice("Jump in", "Major. Then use the vehicle's weapons.", "jump-in"),
                 ],
             },
             { heading: "Major matrix actions", choices: major.map(matrixChoice) },
@@ -734,11 +1005,13 @@ function formsPage(actor) {
         kicker: "Complex form · major",
         title: "Thread a form",
         lead: "Threading is a major action. Fading is the technomancer's version of drain.",
+        leadCite: core(185),
         groups: [{
             choices: forms.map((item) => choice(item.name, `Fading ${item.system.fading ?? "?"}. ${item.system.skill || "No skill"}.`, {
                 go: "matrix-confirm",
                 itemId: item.id,
                 kind: "form",
+                cite: core(185),
             })),
         }],
         blocks: forms.length ? [
@@ -757,6 +1030,7 @@ function matrixConfirmPage(actor, data) {
             kicker: "Complex form",
             title: item.name,
             lead: "Target a persona, device, or host first when the form is opposed.",
+            leadCite: core(185),
             blocks: [
                 block("rules", "Fading", [
                     "Resist fading with Willpower plus Resonance. Leftover fading is Stun unless the form says otherwise. The complex-form chapter is printed pp. 185–195.",
@@ -777,8 +1051,9 @@ function matrixConfirmPage(actor, data) {
         lead: action?.skill
             ? "Target the icon when the action is opposed. One target uses that icon. No target rolls it as a reference action."
             : "This action has no skill test. Eden posts the description to chat.",
+        leadCite: core(179),
         blocks: [
-            block("rules", "From the matrix action", [hint || "Read the action in the matrix chapter, printed pp. 174–184."], core(174)),
+            block("rules", "From the matrix action", [hint || "Read the action in the matrix chapter, printed pp. 179–184."], core(179)),
             edenBlock([
                 action?.illegal
                     ? "This action is illegal. Overwatch still has to be tracked. The sheet stores Overwatch fields and does not advance them from this button."
@@ -794,24 +1069,31 @@ function otherPage(actor) {
     return {
         kicker: "The rest of the turn",
         title: "Something else",
+        lead: "Defense, movement, and Edge have their own pages. What is left is sorted by the action it costs.",
+        leadCite: core(43),
         groups: [{
+            heading: "Major action",
             choices: [
-                choice("Use a skill", "The major action, or any test the gamemaster calls for.", { go: "skills" }),
-                topicChoice("Observe in Detail", "Perception. Major.", "perception"),
-                topicChoice("Assist", "Teamwork. Major.", "assist"),
-                topicChoice("First aid", "Biotech. Then edit the monitor.", "heal"),
-                topicChoice("Use a simple device", "Major.", "use-device"),
-                topicChoice("Call a Shot", "−4 dice, +2 damage.", "call-shot"),
-                topicChoice("Multiple Attacks", "Split the pool.", "multiple-attacks"),
-                topicChoice("Off-hand", "Penalty from p. 110.", "off-hand"),
+                choice("Use a skill", "Or any test the gamemaster calls for.", { go: "skills", badge: "Major", cite: core(35) }),
+                topicChoice("Observe in Detail", "Perception.", "perception", "Major"),
+                topicChoice("Assist", "Teamwork.", "assist", "Major"),
+                topicChoice("First aid", "Biotech. Then edit the monitor.", "heal", "Major"),
+                topicChoice("Use a simple device", "Automatic if it is truly simple. It still costs the major.", "use-device", "Major"),
+            ],
+        }, {
+            heading: "Minor action",
+            note: "These ride with an Attack major.",
+            choices: [
+                topicChoice("Call a Shot", "−4 dice, +2 damage.", "call-shot", "Minor"),
+                topicChoice("Multiple Attacks", "Split the pool.", "multiple-attacks", "Minor"),
+                topicChoice("Off-hand", "Penalty from printed p. 110.", "off-hand", "Minor"),
+            ],
+        }, {
+            heading: "After the hit",
+            note: "The attack already happened. These are the follow-ups the sheet does not track.",
+            choices: [
                 topicChoice("Knockdown", "After a melee hit.", "knockdown"),
                 topicChoice("Grapple", "A hold, tracked in chat.", "grapple"),
-                topicChoice("Dodge", "The defend menu starts here too.", "dodge"),
-                topicChoice("Block", "Melee defense.", "block"),
-                topicChoice("Full Defense", "Willpower on every defense.", "full-defense"),
-                topicChoice("Hit the Dirt", "Prone, +2, then −2.", "hit-the-dirt"),
-                topicChoice("Avoid Incoming", "Leave the blast.", "avoid"),
-                topicChoice("Intercept", "Melee as they close.", "intercept"),
             ],
         }],
         blocks: actor ? [] : [],
@@ -828,13 +1110,14 @@ function skillsPage(actor) {
             return choice(
                 spec ? `${name} (${spec})` : name,
                 `Rank ${skill.points}.`,
-                { go: "skill-confirm", skill: id, spec: spec || "none" },
+                { go: "skill-confirm", skill: id, spec: spec || "none", cite: core(92) },
             );
         });
     return {
         kicker: "Use Skill · major",
         title: "Which skill?",
         lead: "A skill with a specialization shows that specialization. The roll adds +2 if it matches the sheet. Expertise would be +3, and Eden includes it when the spec you pass equals the expertise name.",
+        leadCite: core(92),
         groups: choices.length ? [{ choices }] : [],
         blocks: choices.length ? [] : [block("gap", "No ranked skills", ["Every skill on the sheet is rank 0, or this actor has no skill list."])],
     };
@@ -847,6 +1130,7 @@ function skillConfirmPage(actor, data) {
         kicker: "Skill",
         title: `${name}${spec}`,
         lead: "A simple test needs a threshold. An opposed test needs the other side to roll. The dialog can take a threshold. It does not pull an opponent in unless the roll type is an attack, a spell, or a matrix action.",
+        leadCite: core(35),
         blocks: [
             block("rules", "Hits", [
                 "Count 5s and 6s. More than half the dice showing 1 is a glitch. A glitch with no hits is a critical glitch.",
@@ -866,11 +1150,12 @@ function adeptDetailPage(actor, data) {
         kicker: adeptHint(item),
         title: item.name,
         lead: "Read the power, mark its action on the tally, and type any dice it grants into the attack or defense that follows.",
+        leadCite: core(156),
         groups: [],
         blocks: [
             block("rules", "On the item", [
                 text || "The item has no description. Open it on the sheet for the book text you imported.",
-            ]),
+            ], core(156)),
             block("gap", "No roll", [
                 "Adept powers are reference items. If this power is an attack, use the Attack path with the weapon item that represents it.",
             ]),
@@ -922,8 +1207,8 @@ function compendiumChoice(label, hint, pack, kind) {
     return choice(label, hint, { go: "compendium", pack, kind, clear: "query" });
 }
 
-function topicPage(id) {
-    if (id === "grenade-ordnance") return grenadePage();
+function topicPage(id, actor, data = {}) {
+    if (id === "grenade-ordnance") return grenadePage(actor, data);
     const topic = TOPICS[id];
     if (!topic) {
         return { title: "Missing topic", lead: "Go back.", groups: [], blocks: [] };
@@ -932,36 +1217,56 @@ function topicPage(id) {
         kicker: topic.kicker,
         title: topic.title,
         lead: topic.lead,
+        leadCite: ruleCite(id),
         groups: topic.choices?.length ? [{ choices: topic.choices }] : [],
         blocks: topic.blocks,
         launch: topic.launch ?? null,
     };
 }
 
-function grenadePage() {
+function grenadePage(actor, data) {
+    const item = actor?.items?.get?.(data.itemId);
+    const preview = item ? buildProvision("thrown", item) : null;
+    const existing = preview ? findByGenesis(actor, preview.system.genesisID) : null;
+    const choices = [];
+    if (existing) {
+        choices.push(choice(`Attack with ${existing.name}`, "The thrown copy is already on the sheet.", {
+            go: "attack-confirm",
+            itemId: existing.id,
+            kind: "thrown",
+            cite: core(114),
+        }));
+    } else if (item) {
+        choices.push(choice(`Add ${item.name} as a thrown weapon`, "Athletics. Attack Rating starts blank. Blast stays a table call.", {
+            action: "provision",
+            provision: "thrown",
+            itemId: item.id,
+            badge: "Add",
+            cite: core(114),
+        }));
+    }
+    choices.push(choice("Roll Athletics (Throwing) anyway", "The dice only. Damage stays manual.", {
+        go: "skill-confirm",
+        skill: "athletics",
+        spec: "throwing",
+        cite: core(114),
+    }));
     return {
         kicker: "Grenade",
-        title: "This item is ammunition",
-        lead: "The sheet can count it. It cannot throw it.",
+        title: item ? item.name : "This item is ammunition",
+        lead: "The sheet can count ammunition. It cannot throw it until a thrown weapon exists.",
+        leadCite: core(114),
+        groups: [{ choices }],
         blocks: [
             block("rules", "Throwing and blast", [
                 "Throwing uses Athletics. The blast, gas, or scatter that follows is on printed pp. 114–117.",
                 "Avoid Incoming is how someone leaves the area: Reaction + Athletics, then meters equal to the hits.",
             ], core(114)),
             gapBlock([
-                "Enter a thrown weapon if you want an attack card, or roll Athletics from the skill list and apply damage to everyone in the blast yourself.",
+                "Add the thrown weapon below if you want an attack card. The new item does not know the blast radius. Apply that, and any scatter, in chat.",
                 "Eden does not place a blast template or roll soak for each victim.",
             ]),
         ],
-        groups: [{
-            choices: [
-                choice("Roll Athletics (Throwing) anyway", "The dice only. Damage stays manual.", {
-                    go: "skill-confirm",
-                    skill: "athletics",
-                    spec: "throwing",
-                }),
-            ],
-        }],
     };
 }
 
@@ -1006,8 +1311,14 @@ function weaponHint(item) {
     const skill = system.skill ? game.i18n.localize(`skill.${system.skill}`) : "no skill";
     const stun = system.stun ? "S" : "P";
     const dv = system.dmg != null ? `${system.dmg}${stun}` : "no DV";
-    const modes = enabledFireModes(system).join("/") || "no fire mode";
-    return `${skill} · DV ${dv} · ${modes}`;
+    const modes = enabledFireModes(system);
+    const mode = modes.length ? modeWords(modes) : "no fire mode";
+    return `${skill} · DV ${dv} · ${mode}`;
+}
+
+function modeWords(modes) {
+    const names = { SS: "Single", SA: "Semi", BF: "Burst", FA: "Auto" };
+    return modes.map((mode) => names[mode] || mode).join(", ");
 }
 
 function weaponChoice(label, hint, kind, counts) {
@@ -1017,6 +1328,7 @@ function weaponChoice(label, hint, kind, counts) {
         kind,
         clear: "itemId,fireMode,burst,faArea",
         badge: count ? String(count) : "0",
+        cite: kindCite(kind),
     });
 }
 
@@ -1029,6 +1341,7 @@ function modeChoice(id, itemId) {
         itemId,
         fireMode,
         clear: id === "FA" ? "burst" : "faArea",
+        cite: core(108),
     };
     if (copy.burst) extra.burst = copy.burst;
     else if (id !== "FA") extra.burst = "none";
@@ -1048,6 +1361,7 @@ function spellChoice(item) {
         itemId: item.id,
         kind: "spell",
         badge,
+        cite: core(130),
     });
 }
 
@@ -1064,11 +1378,51 @@ function matrixChoice(action) {
         matrixId: action.id,
         kind: "matrix",
         badge: action.major ? "Major" : "Minor",
+        cite: core(179),
     });
 }
 
-function topicChoice(label, hint, topic) {
-    return choice(label, hint, { go: "topic", topic });
+function topicChoice(label, hint, topic, badge) {
+    return choice(label, hint, { go: "topic", topic, badge, cite: ruleCite(topic) });
+}
+
+function ruleCite(topic) {
+    return TOPICS[topic]?.blocks?.find((entry) => entry.cite)?.cite;
+}
+
+function kindCite(kind) {
+    return {
+        melee: core(104),
+        firearm: core(108),
+        thrown: core(114),
+        ordnance: core(114),
+        special: core(108),
+        gunnery: core(104),
+    }[kind] ?? core(104);
+}
+
+function adeptGroups(powers) {
+    const buckets = {
+        major_action: [],
+        minor_action: [],
+        passive: [],
+        other: [],
+    };
+    for (const item of powers) {
+        const key = Object.hasOwn(buckets, item.system.activation) ? item.system.activation : "other";
+        buckets[key].push(choice(item.name, adeptHint(item), {
+            go: "adept-detail",
+            itemId: item.id,
+            badge: key === "major_action" ? "Major" : key === "minor_action" ? "Minor" : key === "passive" ? "Passive" : "",
+            cite: core(156),
+        }));
+    }
+    return [
+        ["major_action", "Major action"],
+        ["minor_action", "Minor action"],
+        ["passive", "Passive"],
+        ["other", "Activation not set"],
+    ].filter(([key]) => buckets[key].length).map(([key, heading]) => ({ heading, choices: buckets[key] }));
 }
 
 function adeptHint(item) {
@@ -1113,10 +1467,35 @@ function describeMode(data) {
     return "No fire mode was picked. Melee and mode-less weapons open straight into the attack dialog.";
 }
 
-function underbarrelNote(item) {
-    const blob = `${item.name} ${item.system?.accessories ?? ""} ${item.system?.notes ?? ""}`;
-    if (!/underbarrel|under-barrel|masterkey|grenade launcher/i.test(blob)) return "";
-    return "The name or accessories mention an underbarrel or a grenade launcher. Eden keeps one fire-mode list on the item. Add the second weapon as its own gear item and attack with that item.";
+function secondBarrelSection(actor, item) {
+    const plans = secondWeaponPlans(item);
+    if (!plans.length) return null;
+    return {
+        heading: "Second weapon",
+        note: "Eden keeps one fire-mode list on this gun. Add the launcher or shotgun as its own gear item, then attack with that item.",
+        choices: plans.map((plan) => {
+            const existing = findByGenesis(actor, plan.genesisID);
+            if (existing) {
+                const kind = classifyGear(existing);
+                const modes = enabledFireModes(existing.system);
+                const ranged = kind === "firearm" || kind === "thrown" || kind === "special" || kind === "gunnery";
+                return choice(`Attack with ${existing.name}`, "Already on the sheet.", {
+                    go: ranged && modes.length ? "fire-mode" : "attack-confirm",
+                    itemId: existing.id,
+                    kind: kind || "",
+                    clear: "fireMode,burst,faArea",
+                    cite: modes.length ? core(108) : core(104),
+                });
+            }
+            return choice(`Add ${plan.name}`, plan.hint, {
+                action: "provision",
+                provision: plan.id,
+                itemId: item.id,
+                badge: "Add",
+                cite: /launcher|grenade/i.test(plan.name) ? core(114) : core(108),
+            });
+        }),
+    };
 }
 
 function targetNames() {

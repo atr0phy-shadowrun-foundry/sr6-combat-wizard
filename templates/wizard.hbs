@@ -28,14 +28,47 @@
         </div>
         {{/if}}
         {{#if crumb.length}}
-        <div class="sr6tw-crumb">{{#each crumb}}<span>{{this}}</span>{{/each}}</div>
+        <div class="sr6tw-crumb">
+            {{#each crumb}}<button type="button" data-action="crumb" data-index="{{index}}">{{label}}</button>{{/each}}
+            {{#if crumbLabel}}<span>{{crumbLabel}}</span>{{/if}}
+        </div>
         {{/if}}
     </header>
 
     <div class="sr6tw-scroll">
         {{#if kicker}}<p class="sr6tw-kicker">{{kicker}}</p>{{/if}}
-        <h2>{{title}}</h2>
-        {{#if lead}}<p class="sr6tw-lead">{{lead}}</p>{{/if}}
+        <div class="sr6tw-title-row">
+            <h2>{{title}}</h2>
+            {{#if lead}}
+            <span class="sr6tw-help rules">
+                <button type="button" class="sr6tw-help-btn" aria-label="This step">?</button>
+                <span class="sr6tw-tip" role="tooltip">
+                    <p>{{lead}}</p>
+                    {{#if leadCite}}
+                    <button type="button" data-action="book" data-book="{{leadCite.book}}" data-page="{{leadCite.page}}">{{leadCite.label}} p. {{leadCite.page}}</button>
+                    {{/if}}
+                </span>
+            </span>
+            {{/if}}
+            {{#each blocks}}
+            <span class="sr6tw-help {{tone}}">
+                <button type="button" class="sr6tw-help-btn" aria-label="{{heading}}">?</button>
+                <span class="sr6tw-tip" role="tooltip">
+                    <strong>{{heading}}</strong>
+                    {{#each paragraphs}}<p>{{this}}</p>{{/each}}
+                    {{#if cite}}
+                    <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
+                    {{/if}}
+                </span>
+            </span>
+            {{/each}}
+        </div>
+        {{#if notice}}<p class="sr6tw-notice">{{notice}}</p>{{/if}}
+        {{#if steps}}
+        <ol class="sr6tw-steps">
+            {{#each steps}}<li>{{this}}</li>{{/each}}
+        </ol>
+        {{/if}}
 
         {{#if search}}
         <div class="sr6tw-search">
@@ -58,9 +91,9 @@
         {{#each groups}}
         <section class="sr6tw-group">
             {{#if heading}}<h3>{{heading}}</h3>{{/if}}
-            {{#if note}}<p class="sr6tw-note">{{note}}</p>{{/if}}
             <div class="sr6tw-choices">
                 {{#each choices}}
+                <div class="sr6tw-choice-row">
                 <button type="button"
                     class="sr6tw-choice"
                     data-action="{{#if action}}{{action}}{{else}}choose{{/if}}"
@@ -77,9 +110,13 @@
                     {{#if matrixId}}data-matrix-id="{{matrixId}}"{{/if}}
                     {{#if pool}}data-pool="{{pool}}"{{/if}}
                     {{#if pack}}data-pack="{{pack}}"{{/if}}
+                    {{#if guide}}data-guide="{{guide}}"{{/if}}
+                    {{#if guideStep}}data-guide-step="{{guideStep}}"{{/if}}
                     {{#if documentId}}data-document-id="{{documentId}}"{{/if}}
+                    {{#if provision}}data-provision="{{provision}}"{{/if}}
                     {{#if clear}}data-clear="{{clear}}"{{/if}}
                     {{#if track}}data-track="{{track}}"{{/if}}
+                    {{#if delta}}data-delta="{{delta}}"{{/if}}
                     {{#if status}}data-status="{{status}}"{{/if}}
                     {{#if disabled}}disabled{{/if}}>
                     <span class="sr6tw-choice-copy">
@@ -88,25 +125,23 @@
                     </span>
                     {{#if badge}}<span class="sr6tw-badge">{{badge}}</span>{{/if}}
                 </button>
+                {{#if hint}}
+                <span class="sr6tw-help rules">
+                    <button type="button" class="sr6tw-help-btn" aria-label="{{label}}">?</button>
+                    <span class="sr6tw-tip" role="tooltip">
+                        <p>{{hint}}</p>
+                        {{#if cite}}
+                        <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
+                        {{/if}}
+                    </span>
+                </span>
+                {{/if}}
+                </div>
                 {{/each}}
             </div>
         </section>
         {{/each}}
 
-        {{#each blocks}}
-        <section class="sr6tw-block {{tone}}">
-            <div class="sr6tw-block-head">
-                <h3>{{heading}}</h3>
-                {{#if cite}}
-                <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
-                {{/if}}
-            </div>
-            {{#each paragraphs}}<p>{{this}}</p>{{/each}}
-        </section>
-        {{/each}}
-
-        {{#if footnote}}<p class="sr6tw-footnote">{{footnote}}</p>{{/if}}
-        {{#if economy.note}}<p class="sr6tw-footnote">{{economy.note}}</p>{{/if}}
     </div>
 
     <footer class="sr6tw-foot">
