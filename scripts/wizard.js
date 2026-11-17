@@ -1,6 +1,6 @@
 import { destinationForItem, importFromCompendium, openPack } from "./compendiums.js";
 import { buildProvision, findByGenesis } from "./provisions.js";
-import { buildPage, defaultActor } from "./pages.js";
+import { buildPage, resolveActing } from "./pages.js";
 import { openPrintedPage, refillWeapon, runLaunch, toggleStatus } from "./launch.js";
 import { addTally } from "./tally.js";
 
@@ -64,7 +64,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     static show(actor) {
         if (!this.#app) this.#app = new TurnWizard();
         const app = this.#app;
-        if (actor) app.turn.actorUuid = actor.uuid;
+        app.turn.actorUuid = actor?.uuid ?? null;
         if (!app.rendered) {
             app.turn.pageId = "home";
             app.turn.history = [];
@@ -92,21 +92,25 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     get actor() {
-        if (this.turn.actorUuid) {
-            const fromState = fromUuidSync(this.turn.actorUuid);
-            if (fromState) return fromState;
+        return resolveActing(this.turn).actor;
+    }
+
+    selectionChanged() {
+        const before = this.actor?.uuid ?? null;
+        this.turn.actorUuid = null;
+        if (this.actor?.uuid !== before && this.turn.pageId !== "home") {
+            this.turn.pageId = "home";
+            this.turn.history = [];
+            this.turn.data = {};
+            this.turn.label = "";
         }
-        return defaultActor();
+        if (this.rendered) this.render();
     }
 
     async _prepareContext(options) {
         const context = typeof super._prepareContext === "function"
             ? await super._prepareContext(options)
             : {};
-        if (!this.turn.actorUuid) {
-            const actor = defaultActor();
-            if (actor) this.turn.actorUuid = actor.uuid;
-        }
         const page = await buildPage(this.turn);
         delete page.actor;
         return { ...context, ...page };
@@ -251,7 +255,6 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
             pageId: this.turn.pageId,
             label: this.turn.label,
             data: foundry.utils.deepClone(this.turn.data),
-            actorUuid: this.turn.actorUuid,
         };
     }
 
@@ -259,7 +262,6 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         this.turn.pageId = entry.pageId;
         this.turn.label = entry.label;
         this.turn.data = entry.data;
-        if (entry.actorUuid) this.turn.actorUuid = entry.actorUuid;
     }
 
     async #navigate(pageId, patch, label) {

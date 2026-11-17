@@ -3,13 +3,18 @@
         <div class="sr6tw-faceoff">
             <div class="sr6tw-side">
                 <span class="sr6tw-side-label">Acting</span>
-                {{#if acting}}
-                <button type="button" class="sr6tw-face" data-action="sheet" data-uuid="{{acting.uuid}}" data-name="{{acting.name}}" data-tooltip="Open {{acting.name}}'s sheet">
+                {{#if acting.uuid}}
+                <button type="button" class="sr6tw-face {{#if acting.note}}warn{{/if}}" data-action="sheet" data-uuid="{{acting.uuid}}" data-name="{{acting.name}}" data-tooltip="Open {{acting.name}}'s sheet">
                     <img src="{{acting.img}}" alt="">
-                    <span>{{acting.name}}</span>
+                    <span class="sr6tw-face-copy"><span>{{acting.name}}</span>{{#if acting.note}}<em>{{acting.note}}</em>{{/if}}</span>
                 </button>
+                {{else if acting}}
+                <span class="sr6tw-face warn">
+                    <img src="{{acting.img}}" alt="">
+                    <span class="sr6tw-face-copy"><span>{{acting.name}}</span><em>{{acting.note}}</em></span>
+                </span>
                 {{else}}
-                <span class="sr6tw-face empty"><span>Select your token</span></span>
+                <span class="sr6tw-face empty"><span>Nothing selected</span></span>
                 {{/if}}
             </div>
             <span class="sr6tw-vs">vs</span>
@@ -117,6 +122,7 @@
                     {{#if pool}}data-pool="{{pool}}"{{/if}}
                     {{#if pack}}data-pack="{{pack}}"{{/if}}
                     {{#if documentId}}data-document-id="{{documentId}}"{{/if}}
+                    {{#if actorUuid}}data-actor-uuid="{{actorUuid}}"{{/if}}
                     {{#if provision}}data-provision="{{provision}}"{{/if}}
                     {{#if clear}}data-clear="{{clear}}"{{/if}}
                     {{#if track}}data-track="{{track}}"{{/if}}

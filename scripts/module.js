@@ -55,12 +55,16 @@ Hooks.on("getSceneControlButtons", (controls) => {
     else tokens.tools.sr6TurnWizard = tool;
 });
 
-for (const hook of ["targetToken", "controlToken", "combatStart", "updateCombat", "deleteCombat"]) {
+for (const hook of ["targetToken", "combatStart", "updateCombat", "deleteCombat", "updateToken"]) {
     Hooks.on(hook, () => {
         const open = foundry.applications?.instances?.get?.("sr6-turn-wizard");
         if (open?.rendered) open.render();
     });
 }
+
+Hooks.on("controlToken", () => {
+    foundry.applications?.instances?.get?.("sr6-turn-wizard")?.selectionChanged();
+});
 
 async function ensureMacro() {
     if (!game.user.isGM) return;

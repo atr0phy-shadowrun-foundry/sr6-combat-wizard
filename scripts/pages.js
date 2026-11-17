@@ -32,32 +32,38 @@ const FIRE_MODE_COPY = {
     },
 };
 
-export function defaultActor() {
-    const controlled = (canvas?.tokens?.controlled ?? [])
-        .map((token) => token.actor)
-        .filter((actor) => actor?.isOwner);
-    const unique = [...new Map(controlled.map((actor) => [actor.uuid, actor])).values()];
-    if (unique.length) return unique[0];
-    if (game.user.character?.isOwner) return game.user.character;
-    if (game.combat?.combatant?.actor?.isOwner) return game.combat.combatant.actor;
-    return null;
+/**
+ * Who the wizard is acting as. A pick made in the wizard wins until the canvas
+ * selection changes; otherwise the first selected token decides.
+ * @returns {{ actor: Actor|null, token: Token|null, problem: "none"|"broken"|"foreign"|null }}
+ */
+export function resolveActing(state) {
+    const controlled = canvas?.tokens?.controlled ?? [];
+    const picked = state.actorUuid ? fromUuidSync(state.actorUuid) : null;
+    if (picked) {
+        const token = controlled.find((entry) => entry.actor?.uuid === picked.uuid) ?? picked.getActiveTokens?.()[0] ?? null;
+        return picked.isOwner ? { actor: picked, token, problem: null } : { actor: null, token, problem: "foreign" };
+    }
+    const token = controlled[0];
+    if (!token) return { actor: null, token: null, problem: "none" };
+    if (!token.actor) return { actor: null, token, problem: "broken" };
+    if (!token.actor.isOwner) return { actor: null, token, problem: "foreign" };
+    return { actor: token.actor, token, problem: null };
 }
 
-export function actorCandidates() {
+function selectedActors() {
     const found = new Map();
-    const add = (actor) => {
-        if (actor?.isOwner && !found.has(actor.uuid)) found.set(actor.uuid, actor);
-    };
-    for (const token of canvas?.tokens?.controlled ?? []) add(token.actor);
-    add(game.user.character);
-    add(game.combat?.combatant?.actor);
+    for (const token of canvas?.tokens?.controlled ?? []) {
+        if (token.actor?.isOwner && !found.has(token.actor.uuid)) found.set(token.actor.uuid, token.actor);
+    }
     return [...found.values()];
 }
 
 export async function buildPage(state) {
-    const actor = resolveActor(state);
-    const page = actor ? await renderPage(state, actor) : noActorPage();
-    const actors = actorCandidates().map((candidate) => ({
+    const acting = resolveActing(state);
+    const actor = acting.actor;
+    const page = actor ? await renderPage(state, actor) : noActorPage(acting);
+    const actors = selectedActors().map((candidate) => ({
         uuid: candidate.uuid,
         name: candidate.name,
         current: candidate.uuid === actor?.uuid,
@@ -65,7 +71,7 @@ export async function buildPage(state) {
     return {
         ...page,
         actor,
-        acting: actor ? actorCard(actor) : null,
+        acting: actingCard(acting),
         actors,
         multipleActors: actors.length > 1,
         crumb: crumbTrail(state),
@@ -89,11 +95,16 @@ function crumbTrail(state) {
     return trail;
 }
 
-function actorCard(actor) {
-    const token = (canvas?.tokens?.controlled ?? []).find((entry) => entry.actor?.uuid === actor.uuid)
-        ?? actor.getActiveTokens?.()[0];
+function actingCard({ actor, token, problem }) {
+    if (problem === "none") return null;
+    if (problem === "broken") {
+        return { name: token.name, img: portrait(token.document.texture?.src), note: "No actor" };
+    }
+    if (problem === "foreign") {
+        return { uuid: token?.document?.uuid, name: token?.name, img: portrait(token?.document?.texture?.src, token?.actor?.img), note: "Not yours" };
+    }
     return {
-        uuid: actor.uuid,
+        uuid: token?.document?.uuid ?? actor.uuid,
         name: token?.name ?? actor.name,
         img: portrait(token?.document?.texture?.src ?? actor.prototypeToken?.texture?.src, actor.img),
     };
@@ -112,20 +123,33 @@ function portrait(tokenImage, actorImage) {
     return actorImage || "icons/svg/mystery-man.svg";
 }
 
-function resolveActor(state) {
-    if (state.actorUuid) {
-        const fromState = fromUuidSync(state.actorUuid);
-        if (fromState) return fromState;
-    }
-    return defaultActor();
-}
-
-function noActorPage() {
+function noActorPage({ token, problem }) {
+    const copy = {
+        none: {
+            title: "Nothing selected",
+            notice: "Select your token on the canvas. The wizard follows your selection.",
+        },
+        broken: {
+            title: "This token has no actor",
+            notice: `${token?.name ?? "This token"} points to an actor that no longer exists. Select another token, or relink this one in its token settings.`,
+        },
+        foreign: {
+            title: "This token is not yours",
+            notice: `You do not own ${token?.name ?? "this token"}. Select your own token.`,
+        },
+    }[problem];
+    const fallbacks = [];
+    const add = (actor, label, hint) => {
+        if (actor?.isOwner && !fallbacks.some((entry) => entry.actorUuid === actor.uuid)) {
+            fallbacks.push(choice(label, hint, { action: "actor", actorUuid: actor.uuid }));
+        }
+    };
+    add(game.user.character, `Use ${game.user.character?.name}`, "Your assigned character, without selecting a token.");
+    add(game.combat?.combatant?.actor, `Use ${game.combat?.combatant?.name}`, "The combatant whose turn it is.");
     return {
         kicker: "Combat turn",
-        title: "Who is acting?",
-        lead: "Select a token you own, or assign yourself a character in the player list. A gamemaster can also open the wizard on the current combatant.",
-        groups: [],
+        ...copy,
+        groups: fallbacks.length ? [{ heading: "Or act as", choices: fallbacks }] : [],
         blocks: [],
     };
 }

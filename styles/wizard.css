@@ -131,10 +131,29 @@
     box-shadow: none;
 }
 
-.sr6-turn-wizard .sr6tw-face > span {
+.sr6-turn-wizard .sr6tw-face > span,
+.sr6-turn-wizard .sr6tw-face-copy > span {
     max-width: 9.5rem;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.sr6-turn-wizard .sr6tw-face-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.sr6-turn-wizard .sr6tw-face-copy em {
+    color: var(--sr6tw-gap);
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 400;
+}
+
+.sr6-turn-wizard .sr6tw-face.warn {
+    border-color: var(--sr6tw-gap);
 }
 
 .sr6-turn-wizard .sr6tw-face img {
