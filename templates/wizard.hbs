@@ -1,12 +1,34 @@
 <div class="sr6tw">
     <header class="sr6tw-bar">
-        <div class="sr6tw-bar-row">
-            <div class="sr6tw-who">
-                <span class="sr6tw-who-label">Acting</span>
-                <strong>{{actorName}}</strong>
+        <div class="sr6tw-faceoff">
+            <div class="sr6tw-side">
+                <span class="sr6tw-side-label">Acting</span>
+                {{#if acting}}
+                <button type="button" class="sr6tw-face" data-action="sheet" data-uuid="{{acting.uuid}}" data-name="{{acting.name}}" data-tooltip="Open {{acting.name}}'s sheet">
+                    <img src="{{acting.img}}" alt="">
+                    <span>{{acting.name}}</span>
+                </button>
+                {{else}}
+                <span class="sr6tw-face empty"><span>Select your token</span></span>
+                {{/if}}
+            </div>
+            <span class="sr6tw-vs">vs</span>
+            <div class="sr6tw-side">
+                <span class="sr6tw-side-label">Against</span>
+                <div class="sr6tw-faces">
+                    {{#each against}}
+                    <button type="button" class="sr6tw-face" data-action="sheet" data-uuid="{{uuid}}" data-name="{{name}}" data-tooltip="Open {{name}}'s sheet">
+                        <img src="{{img}}" alt="">
+                        <span>{{name}}</span>
+                    </button>
+                    {{else}}
+                    <span class="sr6tw-face empty"><span>Target a token</span></span>
+                    {{/each}}
+                </div>
             </div>
             {{#if economy}}
-            <div class="sr6tw-tally" title="{{economy.note}}">
+            <div class="sr6tw-tally" data-tooltip="{{economy.note}}">
+                <span class="sr6tw-side-label">Actions used</span>
                 <span class="sr6tw-tally-item {{#if economy.majorOver}}over{{/if}}">
                     <span>Major {{economy.majorSpent}}/{{economy.majorMax}}</span>
                     <button type="button" data-action="tally" data-track="major" data-delta="1">+</button>
@@ -25,12 +47,6 @@
             {{#each actors}}
             <button type="button" class="sr6tw-chip {{#if current}}current{{/if}}" data-action="actor" data-actor-uuid="{{uuid}}">{{name}}</button>
             {{/each}}
-        </div>
-        {{/if}}
-        {{#if crumb.length}}
-        <div class="sr6tw-crumb">
-            {{#each crumb}}<button type="button" data-action="crumb" data-index="{{index}}">{{label}}</button>{{/each}}
-            {{#if crumbLabel}}<span>{{crumbLabel}}</span>{{/if}}
         </div>
         {{/if}}
     </header>
@@ -78,16 +94,6 @@
         </div>
         {{/if}}
 
-        {{#if targets.length}}
-        <p class="sr6tw-targets">Targeted: {{#each targets}}{{#unless @first}}, {{/unless}}{{this}}{{/each}}
-            <button type="button" data-action="refresh">Refresh</button>
-        </p>
-        {{else}}
-        <p class="sr6tw-targets">No token targeted.
-            <button type="button" data-action="refresh">Refresh</button>
-        </p>
-        {{/if}}
-
         {{#each groups}}
         <section class="sr6tw-group">
             {{#if heading}}<h3>{{heading}}</h3>{{/if}}
@@ -95,7 +101,7 @@
                 {{#each choices}}
                 <div class="sr6tw-choice-row">
                 <button type="button"
-                    class="sr6tw-choice"
+                    class="sr6tw-choice {{#if dim}}dim{{/if}}"
                     data-action="{{#if action}}{{action}}{{else}}choose{{/if}}"
                     {{#if go}}data-go="{{go}}"{{/if}}
                     data-label="{{label}}"
@@ -110,8 +116,6 @@
                     {{#if matrixId}}data-matrix-id="{{matrixId}}"{{/if}}
                     {{#if pool}}data-pool="{{pool}}"{{/if}}
                     {{#if pack}}data-pack="{{pack}}"{{/if}}
-                    {{#if guide}}data-guide="{{guide}}"{{/if}}
-                    {{#if guideStep}}data-guide-step="{{guideStep}}"{{/if}}
                     {{#if documentId}}data-document-id="{{documentId}}"{{/if}}
                     {{#if provision}}data-provision="{{provision}}"{{/if}}
                     {{#if clear}}data-clear="{{clear}}"{{/if}}
@@ -145,8 +149,12 @@
     </div>
 
     <footer class="sr6tw-foot">
-        <button type="button" data-action="back" {{#unless showBack}}disabled{{/unless}}>Back</button>
-        <button type="button" data-action="home">Start</button>
+        <nav class="sr6tw-crumb">
+            {{#each crumb}}
+            {{#if current}}<span aria-current="page">{{label}}</span>
+            {{else}}<button type="button" data-action="crumb" data-index="{{index}}">{{label}}</button>{{/if}}
+            {{/each}}
+        </nav>
         {{#if launch}}
         <button type="button" class="sr6tw-launch" data-action="launch" data-launch="{{launch.type}}"
             {{#if launch.skill}}data-skill="{{launch.skill}}"{{/if}}

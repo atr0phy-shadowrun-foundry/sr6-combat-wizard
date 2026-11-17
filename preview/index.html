@@ -122,13 +122,11 @@
     <script>
         const screens = [
             ["home", "Start"],
-            ["my-turn", "It's my turn"],
-            ["my-turn-major", "The main action"],
-            ["my-turn-after", "Anything left"],
-            ["incoming", "Someone is attacking me"],
+            ["home-off", "Start, someone else's turn"],
+            ["major", "Major action"],
+            ["minor", "Minor action"],
+            ["anytime", "Anytime action"],
             ["incoming-do", "Dodge, the three clicks"],
-            ["defend", "Defend or get clear"],
-            ["position", "Move, aim, cover, reload"],
             ["attack", "Attack"],
             ["weapons", "Firearms on the sheet"],
             ["fire-mode", "Ares Alpha, fire mode"],
@@ -139,93 +137,175 @@
             ["search", "Compendium search"],
         ];
 
+        const DOORS = {
+            major: ["Major action", "On your turn: attack, cast a spell, sprint, reload, a skill test.", "major", "Major"],
+            minor: ["Minor action", "On your turn: move, aim, take cover, drop prone.", "minor", "Minor"],
+            anytime: ["Anytime action", "On or off your turn: dodge, block, hit the dirt, full defense.", "anytime", "Anytime"],
+            edge: ["Spend Edge", "Boosts on a roll, and Edge actions.", "home", "Edge"],
+        };
+        const dim = (door) => [...door.slice(0, 4), "", true];
+        const HOME_DOORS = {
+            mine: [DOORS.major, DOORS.minor, DOORS.anytime, DOORS.edge],
+            other: [DOORS.anytime, DOORS.edge, dim(DOORS.major), dim(DOORS.minor)],
+        };
+        const HOME_RULES = {
+            tone: "rules",
+            heading: "How a round is built",
+            cite: "Core p. 40",
+            paragraphs: [
+                "Everyone acts once. You start with 1 major action and 1 minor action, plus 1 extra minor for each initiative die, and you do not start with more than 5 minor actions.",
+                "A common turn is a minor to set up, the major, then any minors left. You can spend them in any order.",
+                "A major action may be spent as a minor. Four minor actions may be spent as one major. Unused actions do not carry into the next round.",
+                "An anytime action can be taken when it is not your turn, as long as you still have that action.",
+            ],
+        };
+        const ANYTIME_MINORS = [
+            ["Dodge", "Add Athletics to one Defense test.", "incoming-do", "Minor"],
+            ["Block", "Add Close Combat to one melee Defense test.", "incoming-do", "Minor"],
+            ["Hit the Dirt", "Prone, +2 Defense, then −2 on your tests.", "incoming-do", "Minor"],
+            ["Avoid Incoming", "Leave a blast or a gas cloud.", "home", "Minor"],
+            ["Drop Object", "Let go of what you are holding.", "home", "Minor"],
+            ["Intercept", "Melee attack when someone enters Close. The attack is a major.", "home", "Minor + Major"],
+        ];
+        const ANYTIME_MAJORS = [
+            ["Full Defense", "Add Willpower to every Defense test this round.", "incoming-do", "Major"],
+            ["Counterspell", "Sorcery versus the spell.", "home", "Major"],
+        ];
+
         const pages = {
             home: page({
-                kicker: "Combat turn",
-                title: "What are you doing?",
-                lead: "",
+                kicker: "Round 2 · your turn",
+                title: "What kind of action?",
+                choices: HOME_DOORS.mine,
+                blocks: [HOME_RULES],
+            }),
+            "home-off": page({
+                kicker: "Round 2 · Halloweener is up",
+                title: "What kind of action?",
+                choices: HOME_DOORS.other,
+                blocks: [HOME_RULES],
+            }),
+            major: page({
+                kicker: "Your turn",
+                title: "Major action",
+                lead: "You have one major action a round. Four minors can be spent as one major.",
                 groups: [
                     {
-                        heading: "Walk me through it",
+                        heading: "Combat",
                         choices: [
-                            ["It's my turn", "A minor if you want one, then an attack or a spell, then anything left.", "my-turn"],
-                            ["Someone is attacking me", "Dodge, Block, Full Defense, or Hit the Dirt.", "incoming"],
+                            ["Attack", "A weapon, a fist, a thrown weapon, a grenade.", "attack", "Major"],
+                            ["Sprint", "15 meters plus hits, instead of a normal move.", "home", "Major"],
+                            ["Reload a weapon", "Anything other than a smartgun reload.", "home", "Major"],
+                            ["Ready Weapon", "Draw or stow.", "home", "Major"],
+                            ["Pick up or put down", "The careful version of drop.", "home", "Major"],
                         ],
                     },
                     {
-                        heading: "I know the action",
+                        heading: "After a melee hit",
                         choices: [
-                            ["Attack", "A weapon, a fist, a thrown weapon, a grenade.", "attack", "Major"],
-                            ["Cast a spell", "Combat spells and everything else on the spell list.", "home", "Major"],
-                            ["Defend or get clear", "Minor actions, Full Defense, and the Edge actions that ride on them.", "defend"],
-                            ["Move, aim, cover, reload", "Minor actions, major actions, and Fire from Cover.", "position"],
-                            ["Spend Edge", "Boosts and Edge actions, including the ones the dialog leaves out.", "home"],
-                            ["Other magic", "Adept powers, spirits, a focus, astral perception.", "home"],
-                            ["Matrix, a complex form, or a drone", "Matrix actions from the system list, plus forms on the sheet.", "home"],
-                            ["Something else", "A skill, teamwork, first aid, a grapple, an off-hand penalty.", "home"],
+                            ["Knockdown", "After a melee hit.", "home"],
+                            ["Grapple", "A hold, tracked in chat.", "home"],
+                        ],
+                    },
+                    {
+                        heading: "Magic",
+                        choices: [
+                            ["Cast a spell", "A formula on the sheet.", "home", "Major"],
+                            ["Summon a spirit", "Services are tracked at the table.", "home", "Major"],
+                            ["Banish a spirit", "Opposed, then drain.", "home", "Major"],
+                            ["Astral projection", "Its own initiative.", "home", "Major"],
+                            ["Adept powers", "None on the sheet. The compendium is one step down.", "home", "Empty"],
+                        ],
+                    },
+                    {
+                        heading: "Matrix",
+                        choices: [
+                            ["Complex forms", "A form on the sheet.", "home", "Major"],
+                            ["Jump in", "Then use the vehicle's weapons.", "home", "Major"],
+                            ["Matrix actions", "Major and minor actions from the system list.", "home"],
+                        ],
+                    },
+                    {
+                        heading: "Other",
+                        choices: [
+                            ["Use a skill", "Or any test the gamemaster calls for.", "home", "Major"],
+                            ["Observe in Detail", "Perception.", "home", "Major"],
+                            ["Assist", "Teamwork.", "home", "Major"],
+                            ["First aid", "Biotech. Then edit the monitor.", "home", "Major"],
+                            ["Use a simple device", "Automatic if it is truly simple. It still costs the major.", "home", "Major"],
+                        ],
+                    },
+                    { heading: "Anytime, also on your turn", choices: ANYTIME_MAJORS },
+                ],
+            }),
+            minor: page({
+                kicker: "Your turn",
+                title: "Minor action",
+                lead: "Minor actions are usually automatic. You start with 1, plus 1 for each initiative die, up to 5. A major can be spent as a minor.",
+                groups: [
+                    {
+                        heading: "Move and position",
+                        choices: [
+                            ["Move", "10 meters, once.", "home", "Minor"],
+                            ["Take Cover", "Cover I through IV on the token.", "home", "Minor"],
+                            ["Drop Prone", "Prone without the dive bonus.", "home", "Minor"],
+                            ["Stand Up", "Clear prone.", "home", "Minor"],
+                        ],
+                    },
+                    {
+                        heading: "With an attack",
+                        choices: [
+                            ["Take Aim", "+1 die, stacks to Willpower.", "home", "Minor"],
+                            ["Quick Draw", "A small weapon, with the attack.", "home", "Minor"],
+                            ["Call a Shot", "−4 dice, +2 damage.", "home", "Minor"],
+                            ["Multiple Attacks", "Split the pool.", "home", "Minor"],
+                            ["Off-hand", "Penalty from printed p. 110.", "home", "Minor"],
+                            ["Reload a smartgun", "The next clip is in hand.", "home", "Minor"],
+                        ],
+                    },
+                    {
+                        heading: "Magic and Matrix",
+                        choices: [
+                            ["Command a spirit", "Spends a service.", "home", "Minor"],
+                            ["Activate a focus", "No foci on the sheet.", "home", "Minor"],
+                            ["Shift perception", "Astral or physical.", "home", "Minor"],
+                            ["Command a drone", "Give the drone an order.", "home", "Minor"],
+                            ["Adept powers", "None on the sheet. The compendium is one step down.", "home", "Empty"],
+                            ["Matrix actions", "Major and minor actions from the system list.", "home"],
+                            ["Look up a focus", "Foci compendium in shadowrun-data.", "search"],
+                        ],
+                    },
+                    { heading: "Anytime, also on your turn", choices: ANYTIME_MINORS },
+                    {
+                        heading: "Edge action",
+                        choices: [
+                            ["Fire from Cover", "2 Edge. Shoot from Cover IV without the minor to lean out.", "home", "2 Edge"],
+                        ],
+                    },
+                ],
+            }),
+            anytime: page({
+                kicker: "On or off your turn",
+                title: "Anytime action",
+                notice: "You still need the action. A minor spent here is gone from your own turn.",
+                lead: "The real Defense roll is the button on the attack card. Defenses below walk you through it.",
+                groups: [
+                    { heading: "Minor action", choices: ANYTIME_MINORS },
+                    { heading: "Major action", choices: ANYTIME_MAJORS },
+                    {
+                        heading: "Edge action",
+                        choices: [
+                            ["Tactical Roll", "1 Edge. Rides on Hit the Dirt.", "home", "1 Edge"],
+                            ["Wrest", "2 Edge. Replaces Block.", "home", "2 Edge"],
                         ],
                     },
                 ],
                 blocks: [{
                     tone: "rules",
-                    heading: "How a round is built",
-                    cite: "Core p. 40",
-                    paragraphs: [
-                        "Everyone acts once. You start with 1 major action and 1 minor action, plus 1 extra minor for each initiative die, and you do not start with more than 5 minor actions.",
-                        "A major action may be spent as a minor. Four minor actions may be spent as one major. Unused actions do not carry into the next round.",
-                        "Minor actions are usually automatic. An attack, a spell, and most other majors roll.",
-                    ],
+                    heading: "Soak is the next card",
+                    cite: "Core p. 106",
+                    paragraphs: ["After a hit, the defender rolls Body unless the damage says otherwise. Each hit cancels one point. The soak button is on the attack card, and Edge can still be spent there if this action has not spent Edge yet."],
                 }],
-                footnote: "",
-            }),
-            "my-turn": page({
-                kicker: "Your turn",
-                title: "A minor, if you want one",
-                notice: "You can skip this. The next step is the attack or the spell.",
-                crumb: ["It's my turn"],
-                choices: [
-                    ["Move", "10 meters, once.", "my-turn-major", "Minor"],
-                    ["Take Aim", "+1 die on the attack that follows.", "my-turn-major", "Minor"],
-                    ["Take Cover", "Cover I through IV.", "my-turn-major", "Minor"],
-                    ["Drop Prone", "Go prone without the dive bonus.", "my-turn-major", "Minor"],
-                    ["Skip to the attack or spell", "Spend the major on the main action.", "my-turn-major"],
-                ],
-            }),
-            "my-turn-major": page({
-                kicker: "Your turn",
-                title: "The main action",
-                notice: "This spends your major.",
-                crumb: ["It's my turn", "The main action"],
-                choices: [
-                    ["Attack", "A weapon, a fist, a thrown weapon, a grenade.", "attack", "Major"],
-                    ["Cast a spell", "A formula on the sheet.", "home", "Major"],
-                    ["Sprint", "15 meters plus hits, instead of a normal move.", "my-turn-after", "Major"],
-                    ["Something else", "Reload, a skill, or another major.", "home"],
-                ],
-            }),
-            "my-turn-after": page({
-                kicker: "Your turn",
-                title: "Anything left",
-                notice: "A minor, if you still have one. Then the turn is done.",
-                crumb: ["It's my turn", "Anything left"],
-                choices: [
-                    ["Take Aim", "+1 die if you have not aimed yet.", "home", "Minor"],
-                    ["Reload a smartgun", "The next clip is in hand.", "home", "Minor"],
-                    ["Drop what you're holding", "Anytime minor.", "home", "Minor"],
-                    ["That's the turn", "Back to the start.", "home"],
-                ],
-            }),
-            incoming: page({
-                kicker: "Defense",
-                title: "Someone is attacking me",
-                notice: "Pick one. The next page is the clicks on the attack card.",
-                crumb: ["Someone is attacking me"],
-                choices: [
-                    ["Dodge", "Add Athletics to this one Defense test.", "incoming-do", "Minor"],
-                    ["Block", "Add Close Combat to this one melee Defense test.", "incoming-do", "Minor"],
-                    ["Full Defense", "Add Willpower to every Defense test this round.", "incoming-do", "Major"],
-                    ["Hit the Dirt", "Prone, +2 Defense, then −2 on your tests.", "incoming-do", "Minor"],
-                ],
             }),
             "incoming-do": page({
                 kicker: "Defense",
@@ -236,93 +316,9 @@
                     "Press Defense.",
                     "Type 4 into the modifier. That is Athletics.",
                 ],
-                choices: [
-                    ["Mark the minor", "Count it on the tally at the top.", "incoming-do", ""],
-                ],
-            }),
-            defend: page({
-                kicker: "Defense",
-                title: "Defend or get clear",
-                lead: "The real Defense roll is the button on the attack card. This page is sorted by what the action costs. You can take an anytime action when it is not your turn, if you still have it.",
-                crumb: ["Defend or get clear"],
                 groups: [
-                    {
-                        heading: "Minor action",
-                        note: "Anytime. One Defense test, unless the action says otherwise.",
-                        choices: [
-                            ["Dodge", "Add Athletics to one Defense test.", "home", "Minor"],
-                            ["Block", "Add Close Combat to one melee Defense test.", "home", "Minor"],
-                            ["Hit the Dirt", "Prone, +2 Defense, then −2 on your tests.", "home", "Minor"],
-                            ["Avoid Incoming", "Leave a blast or a gas cloud.", "home", "Minor"],
-                        ],
-                    },
-                    {
-                        heading: "Major action",
-                        note: "Anytime. This spends the major for the round.",
-                        choices: [
-                            ["Full Defense", "Add Willpower to every Defense test this round.", "home", "Major"],
-                        ],
-                    },
-                    {
-                        heading: "Minor action and a major action",
-                        note: "The minor is Intercept. The major is the melee attack.",
-                        choices: [
-                            ["Intercept", "Melee attack when someone enters Close.", "home", "Minor + Major"],
-                        ],
-                    },
-                    {
-                        heading: "Edge action",
-                        note: "An Edge action does not spend a minor or a major. It attaches to the action in the hint.",
-                        choices: [
-                            ["Tactical Roll", "1 Edge. Rides on Hit the Dirt.", "home", "1 Edge"],
-                            ["Wrest", "2 Edge. Replaces Block.", "home", "2 Edge"],
-                        ],
-                    },
-                ],
-            }),
-            position: page({
-                kicker: "Set up the turn",
-                title: "Move, aim, cover, reload",
-                lead: "Sorted by what the action costs. A minor on your turn is not the same list as a minor you can take when it is not your turn.",
-                crumb: ["Move, aim, cover, reload"],
-                groups: [
-                    {
-                        heading: "Minor action",
-                        note: "On your turn.",
-                        choices: [
-                            ["Move", "10 meters, once.", "home", "Minor"],
-                            ["Take Aim", "+1 die, stacks to Willpower.", "home", "Minor"],
-                            ["Take Cover", "Cover I–IV on the token.", "home", "Minor"],
-                            ["Drop Prone", "Prone without the dive bonus.", "home", "Minor"],
-                            ["Stand Up", "Clear prone.", "home", "Minor"],
-                            ["Quick Draw", "A small weapon, with the attack.", "home", "Minor"],
-                            ["Reload a smartgun", "The next clip is in hand.", "home", "Minor"],
-                        ],
-                    },
-                    {
-                        heading: "Major action",
-                        note: "On your turn.",
-                        choices: [
-                            ["Sprint", "15 meters plus hits.", "home", "Major"],
-                            ["Ready Weapon", "Draw or stow.", "home", "Major"],
-                            ["Pick up or put down", "The careful version of drop.", "home", "Major"],
-                            ["Reload a weapon", "Anything other than a smartgun reload.", "home", "Major"],
-                        ],
-                    },
-                    {
-                        heading: "Minor action, anytime",
-                        note: "You can take this when it is not your turn, if you still have the minor.",
-                        choices: [
-                            ["Drop Object", "Let go of what you are holding.", "home", "Minor"],
-                        ],
-                    },
-                    {
-                        heading: "Edge action",
-                        note: "This does not spend a minor or a major. It attaches to the ranged attack.",
-                        choices: [
-                            ["Fire from Cover", "2 Edge. Shoot from Cover IV without the minor to lean out.", "home", "2 Edge"],
-                        ],
-                    },
+                    { heading: "Then mark it", choices: [["Mark the minor", "Count it on the tally at the top.", "incoming-do", ""]] },
+                    { choices: [["The full rule", "What the book and Eden each handle.", "home"]] },
                 ],
             }),
             attack: page({
@@ -498,16 +494,16 @@
         }
 
         const CITE = {
-            "It's my turn": "Core p. 40",
-            "Someone is attacking me": "Core p. 42",
+            "Major action": "Core p. 40",
+            "Minor action": "Core p. 41",
+            "Anytime action": "Core p. 42",
+            "Spend Edge": "Core p. 44",
             "Attack": "Core p. 40",
             "Cast a spell": "Core p. 130",
-            "Defend or get clear": "Core p. 42",
-            "Move, aim, cover, reload": "Core p. 41",
-            "Spend Edge": "Core p. 46",
-            "Other magic": "Core p. 127",
-            "Matrix, a complex form, or a drone": "Core p. 174",
-            "Something else": "Core p. 43",
+            "Adept powers": "Core p. 156",
+            "Complex forms": "Core p. 185",
+            "Matrix actions": "Core p. 174",
+            "Use a skill": "Core p. 35",
             "Move": "Core p. 41",
             "Take Aim": "Core p. 41",
             "Take Cover": "Core p. 41",
@@ -520,7 +516,6 @@
             "Pick up or put down": "Core p. 43",
             "Reload a weapon": "Core p. 43",
             "Drop Object": "Core p. 41",
-            "Drop what you're holding": "Core p. 41",
             "Fire from Cover": "Core p. 47",
             "Dodge": "Core p. 42",
             "Block": "Core p. 42",
@@ -548,8 +543,9 @@
             "Roll Athletics (Throwing) anyway": "Core p. 114",
         };
         const LEAD_CITE = {
-            defend: "Core p. 42",
-            position: "Core p. 41",
+            major: "Core p. 40",
+            minor: "Core p. 41",
+            anytime: "Core p. 42",
             attack: "Core p. 40",
             weapons: "Core p. 108",
             "fire-mode": "Core p. 108",
@@ -564,13 +560,13 @@
         let minor = 1;
 
         function choiceButton(entry) {
-            const [label, hint, go, badge, toast] = entry;
+            const [label, hint, go, badge, toast, dimmed] = entry;
             const badgeHtml = badge ? `<span class="sr6tw-badge">${badge}</span>` : "";
             const toastAttr = toast ? ` data-toast="${escapeAttr(toast)}"` : "";
             const cite = CITE[label] || "";
             const citeHtml = cite ? `<button type="button">${cite}</button>` : "";
             return `<div class="sr6tw-choice-row">
-                <button type="button" class="sr6tw-choice" data-go="${go}"${toastAttr}>
+                <button type="button" class="sr6tw-choice${dimmed ? " dim" : ""}" data-go="${go}"${toastAttr}>
                     <span class="sr6tw-choice-copy">
                         <span class="sr6tw-choice-label">${label}</span>
                         ${hint ? `<span class="sr6tw-choice-hint">${hint}</span>` : ""}
@@ -609,15 +605,22 @@
                     <button type="button">Search</button>
                     <button type="button">Open compendium</button>
                 </div>` : "";
-            const crumb = history.map((id, index) =>
-                `<button type="button" data-action="crumb" data-index="${index}">${pages[id]?.title || id}</button>`
-            ).join("");
+            const start = Math.max(0, history.lastIndexOf("home"));
+            const crumb = id === "home"
+                ? `<span aria-current="page">Start</span>`
+                : history.slice(start).map((page, offset) =>
+                    `<button type="button" data-action="crumb" data-index="${start + offset}">${page === "home" ? "Start" : pages[page]?.title || page}</button>`
+                ).join("") + `<span aria-current="page">${spec.title}</span>`;
+            const face = (name) => `<button type="button" class="sr6tw-face" data-action="sheet" data-name="${name}"><img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%23333'/%3E%3Ctext x='24' y='31' font-size='20' text-anchor='middle' fill='%23aaa' font-family='sans-serif'%3E${name[0]}%3C/text%3E%3C/svg%3E" alt=""><span>${name}</span></button>`;
             document.getElementById("app").innerHTML = `
                 <div class="sr6tw">
                     <header class="sr6tw-bar">
-                        <div class="sr6tw-bar-row">
-                            <div class="sr6tw-who"><span class="sr6tw-who-label">Acting</span> <strong>Krait</strong></div>
+                        <div class="sr6tw-faceoff">
+                            <div class="sr6tw-side"><span class="sr6tw-side-label">Acting</span>${face("Krait")}</div>
+                            <span class="sr6tw-vs">vs</span>
+                            <div class="sr6tw-side"><span class="sr6tw-side-label">Against</span><div class="sr6tw-faces">${face("Halloweener")}</div></div>
                             <div class="sr6tw-tally">
+                                <span class="sr6tw-side-label">Actions used</span>
                                 <span class="sr6tw-tally-item ${major > 1 ? "over" : ""}">
                                     <span>Major ${major}/1</span>
                                     <button type="button" data-tally="major" data-delta="1">+</button>
@@ -634,7 +637,6 @@
                             <button type="button" class="sr6tw-chip current">Krait</button>
                             <button type="button" class="sr6tw-chip">Rigger drone</button>
                         </div>
-                        ${crumb ? `<div class="sr6tw-crumb">${crumb}<span>${spec.title}</span></div>` : ""}
                     </header>
                     <div class="sr6tw-scroll">
                         <p class="sr6tw-kicker">${spec.kicker || ""}</p>
@@ -645,14 +647,10 @@
                         ${spec.notice ? `<p class="sr6tw-notice">${spec.notice}</p>` : ""}
                         ${spec.steps ? `<ol class="sr6tw-steps">${spec.steps.map((step) => `<li>${step}</li>`).join("")}</ol>` : ""}
                         ${search}
-                        <p class="sr6tw-targets">Targeted: Halloweener
-                            <button type="button" data-action="refresh">Refresh</button>
-                        </p>
                         ${groupHtml}
                     </div>
                     <footer class="sr6tw-foot">
-                        <button type="button" data-action="back" ${history.length ? "" : "disabled"}>Back</button>
-                        <button type="button" data-action="home">Start</button>
+                        <nav class="sr6tw-crumb">${crumb}</nav>
                         ${spec.launch ? `<button type="button" class="sr6tw-launch">${spec.launch}</button>` : ""}
                     </footer>
                 </div>`;
@@ -694,8 +692,6 @@
             }
             const action = event.target.closest("[data-action]");
             if (!action) return;
-            if (action.dataset.action === "home") render("home");
-            if (action.dataset.action === "back" && history.length) render(history.pop(), false);
             if (action.dataset.action === "crumb") {
                 const index = Number(action.dataset.index);
                 const id = history[index];
@@ -704,7 +700,7 @@
                     render(id, false);
                 }
             }
-            if (action.dataset.action === "refresh") toast("In Foundry this rereads targeted tokens.");
+            if (action.dataset.action === "sheet") toast(`In Foundry this opens ${action.dataset.name}'s sheet.`);
         });
 
         render("home", false);

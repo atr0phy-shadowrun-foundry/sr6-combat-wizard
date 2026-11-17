@@ -6,7 +6,7 @@ import { addTally } from "./tally.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-const DATA_FIELDS = ["kind", "itemId", "fireMode", "burst", "faArea", "topic", "skill", "spec", "matrixId", "pool", "pack", "guide", "guideStep"];
+const DATA_FIELDS = ["kind", "itemId", "fireMode", "burst", "faArea", "topic", "skill", "spec", "matrixId", "pool", "pack"];
 
 function dataAttribute(key) {
     return "data-" + key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
@@ -44,15 +44,13 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         this.DEFAULT_OPTIONS.form.handler = this.#onSubmit;
         this.DEFAULT_OPTIONS.actions = {
             choose: this.#onChoose,
-            back: this.#onBack,
-            home: this.#onHome,
             launch: this.#onLaunch,
             book: this.#onBook,
             tally: this.#onTally,
             actor: this.#onActor,
+            sheet: this.#onSheet,
             status: this.#onStatus,
             refill: this.#onRefill,
-            refresh: this.#onRefresh,
             search: this.#onSearch,
             pack: this.#onPack,
             import: this.#onImport,
@@ -129,24 +127,6 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         await this.#navigate(pageId, patch, target.dataset.label || cleanLabel(target));
     }
 
-    static async #onBack(event) {
-        event.preventDefault();
-        const previous = this.turn.history.pop();
-        if (!previous) return;
-        this.#restore(previous);
-        return this.render();
-    }
-
-    static async #onHome(event) {
-        event.preventDefault();
-        if (this.turn.pageId === "home" && !this.turn.label && !Object.keys(this.turn.data).length) return;
-        this.turn.history.push(this.#snapshot());
-        this.turn.pageId = "home";
-        this.turn.data = {};
-        this.turn.label = "";
-        return this.render();
-    }
-
     static async #onCrumb(event, target) {
         event.preventDefault();
         const index = Number(target.dataset.index);
@@ -196,6 +176,18 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         return this.render();
     }
 
+    static async #onSheet(event, target) {
+        event.preventDefault();
+        const doc = fromUuidSync(target.dataset.uuid);
+        const actor = doc?.actor ?? doc;
+        if (!actor?.sheet) return;
+        if (!actor.testUserPermission(game.user, "LIMITED")) {
+            ui.notifications.warn(`You cannot view ${target.dataset.name || actor.name}'s sheet.`);
+            return;
+        }
+        actor.sheet.render(true);
+    }
+
     static async #onStatus(event, target) {
         event.preventDefault();
         const actor = this.actor;
@@ -210,11 +202,6 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!actor) return;
         const filled = await refillWeapon(actor, target.dataset.itemId);
         if (filled && target.dataset.track) await addTally(actor, target.dataset.track, 1);
-        return this.render();
-    }
-
-    static async #onRefresh(event) {
-        event.preventDefault();
         return this.render();
     }
 
