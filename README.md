@@ -30,5 +30,3 @@ git clone https://github.com/atr0phy-shadowrun-foundry/sr6-combat-wizard.git sr6
 Then enable **Shadowrun Turn Wizard** in a world that already has **Shadowrun 6th Edition** and **Shadowrun Compendiums**. Foundry will refuse to enable this module until `shadowrun-data` is installed.
 
 Open it from the route icon on the token controls, the **Combat Turn Wizard** macro (created the first time a gamemaster loads the world), or Shift+Alt+T.
-
-A clickable mock of the window, with no Foundry server, is `preview/index.html`. Open that file in a browser.
