@@ -392,6 +392,13 @@
     font-size: 0.95rem;
 }
 
+.sr6-turn-wizard .sr6tw-group-note {
+    margin: 0.2rem 0 0.35rem;
+    color: var(--color-text-secondary, #c9c3b6);
+    font-size: 0.82rem;
+    line-height: 1.35;
+}
+
 .sr6-turn-wizard .sr6tw-choices {
     display: flex;
     flex-direction: column;

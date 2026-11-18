@@ -27,6 +27,18 @@ const POOLS = {
             return actor._getSkillPool("close_combat", undefined, "str");
         },
     },
+    drain: {
+        actionText: "Drain Resistance",
+        checkText: "Willpower + tradition attribute",
+        pool(actor) {
+            const prepared = actor.system?.defensepool?.drain?.base;
+            if (prepared != null && prepared !== "") return Number(prepared);
+            const wil = Number(foundry.utils.getProperty(actor, "system.attributes.wil.pool")) || 0;
+            const key = actor.system?.tradition?.attribute;
+            const trad = key ? Number(foundry.utils.getProperty(actor, `system.attributes.${key}.pool`)) || 0 : 0;
+            return wil + trad;
+        },
+    },
 };
 
 export async function openPrintedPage(bookId, printedPage) {

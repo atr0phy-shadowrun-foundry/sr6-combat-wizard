@@ -174,6 +174,7 @@ async function renderPage(state, actor) {
     if (id === "attack-confirm") return attackConfirmPage(actor, state.data);
     if (id === "spells") return spellListPage(actor, state.data.kind);
     if (id === "spell-confirm") return spellConfirmPage(actor, state.data);
+    if (id === "spell-drain") return spellDrainPage(actor, state.data);
     if (id === "adept") return adeptPage(actor);
     if (id === "adept-detail") return adeptDetailPage(actor, state.data);
     if (id === "edge") return edgePage();
@@ -198,6 +199,7 @@ async function renderPage(state, actor) {
 function homePage(actor) {
     const turn = turnState(actor);
     const offTurn = turn === "other";
+    const gates = actorGates(actor);
     const major = choice("Major action", "On your turn: attack, cast a spell, sprint, reload, a skill test.", { go: "major", clear: CLEAR, badge: "Major", cite: core(40), dim: offTurn });
     const minor = choice("Minor action", "On your turn: move, aim, take cover, drop prone.", { go: "minor", clear: CLEAR, badge: "Minor", cite: core(41), dim: offTurn });
     const anytime = choice("Anytime action", "On or off your turn: dodge, block, hit the dirt, full defense.", { go: "anytime", clear: CLEAR, badge: "Anytime", cite: core(42) });
@@ -209,15 +211,16 @@ function homePage(actor) {
             { choices: offTurn ? [anytime, edge, major, minor] : [major, minor, anytime, edge] },
             {
                 heading: "Special states",
+                note: "Open these when you are already in that layer. Dimmed doors are still selectable; the next page explains what is missing.",
                 choices: [
                     choice("In the Matrix", "VR persona work: matrix actions, forms, jack out.", {
-                        go: "state-matrix", clear: CLEAR, cite: core(174),
+                        go: "state-matrix", clear: CLEAR, cite: core(174), dim: !gates.matrix,
                     }),
                     choice("In the Astral", "Perceive or project. Two modes on the next page.", {
-                        go: "state-astral", clear: CLEAR, cite: core(159),
+                        go: "state-astral", clear: CLEAR, cite: core(159), dim: !gates.astralPerceive,
                     }),
                     choice("Jumped In", "You are the vehicle or drone. Drive, shoot, jump out.", {
-                        go: "state-jumped", clear: CLEAR, cite: core(196),
+                        go: "state-jumped", clear: CLEAR, cite: core(196), dim: !gates.jumpIn,
                     }),
                 ],
             },
@@ -247,6 +250,9 @@ function turnKicker(actor, turn) {
 }
 
 function majorPage(actor) {
+    const gates = actorGates(actor);
+    const forms = actor.items.filter((item) => item.type === "complexform");
+    const spells = actor.items.filter((item) => item.type === "spell" || item.type === "ritual");
     return {
         kicker: "Your turn",
         title: "Major action",
@@ -255,6 +261,7 @@ function majorPage(actor) {
         groups: [
             {
                 heading: "Combat",
+                note: "Hurt someone, move fast, or get a weapon ready.",
                 choices: [
                     choice("Attack", "A weapon, a fist, a thrown weapon, a grenade.", { go: "attack", badge: "Major", cite: core(40) }),
                     topicChoice("Sprint", "15 meters plus hits, instead of a normal move.", "sprint", "Major"),
@@ -266,24 +273,33 @@ function majorPage(actor) {
             },
             {
                 heading: "Magic",
+                note: "Spells, spirits, projection, and adept powers.",
                 choices: [
-                    choice("Cast a spell", "A formula on the sheet.", { go: "spells", kind: "any", badge: "Major", cite: core(130) }),
-                    topicChoice("Summon a spirit", "Services are tracked at the table.", "summon", "Major"),
-                    topicChoice("Banish a spirit", "Opposed, then drain.", "banish", "Major"),
-                    topicChoice("Astral projection", "Its own initiative.", "astral-projection", "Major"),
-                    adeptChoice(actor),
+                    choice("Cast a spell", spells.length ? "A formula on the sheet." : "No spells on this sheet.", {
+                        go: "spells", kind: "any", badge: "Major", cite: core(130), dim: !gates.castSpells,
+                    }),
+                    gatedTopic("Summon a spirit", "Services are tracked at the table.", "summon", "Major", !gates.castSpells),
+                    gatedTopic("Banish a spirit", "Opposed, then drain.", "banish", "Major", !gates.magic),
+                    gatedTopic("Astral projection", "Its own initiative.", "astral-projection", "Major", !gates.astralProject),
+                    adeptChoice(actor, gates),
                 ],
             },
             {
                 heading: "Matrix",
+                note: "Persona work, complex forms, and jumping into a rig.",
                 choices: [
-                    choice("Complex forms", "A form on the sheet.", { go: "forms", badge: "Major", cite: core(185) }),
-                    topicChoice("Jump in", "Then use the vehicle's weapons.", "jump-in", "Major"),
-                    choice("Matrix actions", "Major and minor actions from the system list.", { go: "matrix", cite: core(174) }),
+                    choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", {
+                        go: "forms", badge: "Major", cite: core(185), dim: !gates.resonance && !forms.length,
+                    }),
+                    gatedTopic("Jump in", "Then use the vehicle's weapons.", "jump-in", "Major", !gates.jumpIn),
+                    choice("Matrix actions", "Major and minor actions from the system list.", {
+                        go: "matrix", cite: core(174), dim: !gates.matrix,
+                    }),
                 ],
             },
             {
                 heading: "Other",
+                note: "Skills, teamwork, and tools that are not their own attack.",
                 choices: [
                     choice("Use a skill", "Or any test the gamemaster calls for.", { go: "skills", badge: "Major", cite: core(35) }),
                     topicChoice("Observe in Detail", "Perception.", "perception", "Major"),
@@ -294,6 +310,7 @@ function majorPage(actor) {
             },
             {
                 heading: "Anytime, also on your turn",
+                note: "Defenses you can still take when you have the action left.",
                 choices: anytimeMajors(),
             },
         ],
@@ -303,6 +320,7 @@ function majorPage(actor) {
 
 function minorPage(actor) {
     const foci = actor.items.filter((item) => item.type === "focus");
+    const gates = actorGates(actor);
     return {
         kicker: "Your turn",
         title: "Minor action",
@@ -311,6 +329,7 @@ function minorPage(actor) {
         groups: [
             {
                 heading: "Move and position",
+                note: "Get somewhere safer, or change how you stand.",
                 choices: [
                     topicChoice("Move", "10 meters, once.", "move", "Minor"),
                     topicChoice("Take Cover", "Cover I through IV on the token.", "take-cover", "Minor"),
@@ -320,7 +339,7 @@ function minorPage(actor) {
             },
             {
                 heading: "With an attack",
-                note: "These ride with the Attack major.",
+                note: "Spend these with the Attack major on the same action.",
                 choices: [
                     topicChoice("Take Aim", "+1 die, stacks to Willpower. Then open the attack.", "take-aim", "Minor"),
                     topicChoice("Quick Draw", "A small weapon, with the attack.", "quick-draw", "Minor"),
@@ -332,18 +351,24 @@ function minorPage(actor) {
             },
             {
                 heading: "Magic and Matrix",
+                note: "Spirits, foci, perception shifts, drones, and matrix minors.",
                 choices: [
-                    topicChoice("Command a spirit", "Spends a service.", "command-spirit", "Minor"),
-                    topicChoice("Activate a focus", foci.length ? foci.map((item) => item.name).join(", ") : "No foci on the sheet.", "focus", "Minor"),
-                    topicChoice("Shift perception", "Astral or physical.", "shift-perception", "Minor"),
+                    gatedTopic("Command a spirit", "Spends a service.", "command-spirit", "Minor", !gates.magic),
+                    choice("Activate a focus", foci.length ? foci.map((item) => item.name).join(", ") : "No foci on the sheet.", {
+                        go: "topic", topic: "focus", badge: "Minor", cite: ruleCite("focus"), dim: !gates.magic && !foci.length,
+                    }),
+                    gatedTopic("Shift perception", "Astral or physical.", "shift-perception", "Minor", !gates.astralPerceive),
                     topicChoice("Command a drone", "Give the drone an order.", "command-drone", "Minor"),
-                    adeptChoice(actor),
-                    choice("Matrix actions", "Major and minor actions from the system list.", { go: "matrix", cite: core(174) }),
+                    adeptChoice(actor, gates),
+                    choice("Matrix actions", "Major and minor actions from the system list.", {
+                        go: "matrix", cite: core(174), dim: !gates.matrix,
+                    }),
                     compendiumChoice("Look up a focus", "Foci compendium in shadowrun-data.", "foci", "any"),
                 ],
             },
             {
                 heading: "Anytime, also on your turn",
+                note: "Defenses and reactions that still cost a minor.",
                 choices: anytimeMinors(),
             },
             {
@@ -411,11 +436,15 @@ function anytimeMajors() {
 
 function stateMatrixPage(actor) {
     const forms = actor.items.filter((item) => item.type === "complexform");
+    const gates = actorGates(actor);
     return {
         kicker: "Special state",
         title: "In the Matrix",
         lead: "You are in VR as a persona. Meat Move, Take Cover, and physical Attack wait until you leave. Matrix initiative uses the combatant's matrix flag.",
         leadCite: core(174),
+        notice: gates.matrix
+            ? ""
+            : "You need a connected matrix device. On the sheet's Matrix tab, switch a commlink, cyberdeck, or similar device online and tick it as the device used to access the Matrix. Technomancers use a living persona instead.",
         infoFirst: true,
         groups: [
             {
@@ -461,31 +490,41 @@ function stateMatrixPage(actor) {
 }
 
 function stateAstralPage(actor) {
+    const gates = actorGates(actor);
+    let notice = "";
+    if (!gates.astralPerceive) {
+        notice = "You need the ability to perceive astrally. Full magicians, aspected magicians, and mystic adepts have it. An adept needs the Astral Perception power.";
+    } else if (!gates.astralProject) {
+        notice = "You can perceive astrally. Astral projection needs a full or aspected magician. Mystic adepts perceive and do not project.";
+    }
     return {
         kicker: "Special state",
         title: "In the Astral",
         lead: "Pick the mode you are in. Perception keeps the body in the fight. Projection puts you on the astral initiative track.",
         leadCite: core(159),
+        notice,
         infoFirst: true,
         groups: [
             {
                 heading: "Astral perception",
+                note: "Body stays in the meat. You are dual-natured while perceiving.",
                 choices: [
-                    topicChoice("Shift Perception", "Switch between astral and physical sight.", "shift-perception", "Minor"),
+                    gatedTopic("Shift Perception", "Switch between astral and physical sight.", "shift-perception", "Minor", !gates.astralPerceive),
                     choice("Assense", "Astral + Intuition. Read an aura, place, or object.", {
-                        go: "skill-confirm", skill: "astral", spec: "none", badge: "Major", cite: core(159),
+                        go: "skill-confirm", skill: "astral", spec: "none", badge: "Major", cite: core(159), dim: !gates.astralPerceive,
                     }),
                 ],
             },
             {
                 heading: "Astral projection",
+                note: "Consciousness leaves the body. You must be able to project.",
                 choices: [
-                    topicChoice("Astral projection", "Leave the body, or return to it.", "astral-projection", "Major"),
+                    gatedTopic("Astral projection", "Leave the body, or return to it.", "astral-projection", "Major", !gates.astralProject),
                     choice("Assense while projecting", "Same Astral + Intuition test, from the astral.", {
-                        go: "skill-confirm", skill: "astral", spec: "none", badge: "Major", cite: core(159),
+                        go: "skill-confirm", skill: "astral", spec: "none", badge: "Major", cite: core(159), dim: !gates.astralProject,
                     }),
                     choice("Astral combat", "Astral + Willpower against an astral target.", {
-                        go: "skill-confirm", skill: "astral", spec: "astral_combat", badge: "Major", cite: core(160),
+                        go: "skill-confirm", skill: "astral", spec: "astral_combat", badge: "Major", cite: core(160), dim: !gates.astralProject,
                     }),
                 ],
             },
@@ -516,11 +555,15 @@ function stateAstralPage(actor) {
 }
 
 function stateJumpedPage(actor) {
+    const gates = actorGates(actor);
     return {
         kicker: "Special state",
         title: "Jumped In",
         lead: "You are the vehicle or drone. Physical attributes are not used for tests on that device. Hot-sim and cold-sim still matter for initiative and dumpshock.",
         leadCite: core(196),
+        notice: gates.jumpIn
+            ? ""
+            : "You need a vehicle control rig. Set Control Rig rating on the sheet (rigging section). Technomancers use the echo that replaces the implant.",
         infoFirst: true,
         groups: [
             {
@@ -585,9 +628,47 @@ function matrixActionChoice(id, hint) {
     });
 }
 
-function adeptChoice(actor) {
+function adeptChoice(actor, gates = actorGates(actor)) {
     const powers = actor.items.filter((item) => item.type === "adeptpower").length;
-    return choice("Adept powers", powers ? `${powers} on the sheet, grouped by activation.` : "None on the sheet. The compendium is one step down.", { go: "adept", badge: powers ? "" : "Empty", cite: core(156) });
+    return choice(
+        "Adept powers",
+        powers ? `${powers} on the sheet, grouped by activation.` : "None on the sheet. The compendium is one step down.",
+        { go: "adept", badge: powers ? "" : "Empty", cite: core(156), dim: !gates.adeptPowers && !powers },
+    );
+}
+
+function gatedTopic(label, hint, topic, badge, dim) {
+    return choice(label, hint, { go: "topic", topic, badge, cite: ruleCite(topic), dim: Boolean(dim) });
+}
+
+function actorGates(actor) {
+    const mortype = actor?.system?.mortype || "mundane";
+    const morDef = actor?.system?.morDef ?? CONFIG.SR6.MOR_DEFINITIONS?.[mortype];
+    const magic = Boolean(morDef?.magic);
+    const resonance = Boolean(morDef?.resonance);
+    const useSpells = Boolean(morDef?.useSpells);
+    const usePowers = Boolean(morDef?.usePowers);
+    const hasAstralPower = actor.items?.some((item) =>
+        item.type === "adeptpower" && /astral\s*perception/i.test(item.name || ""),
+    );
+    const astralPerceive = mortype === "magician"
+        || mortype === "mysticadept"
+        || mortype === "aspectedmagician"
+        || (mortype === "adept" && hasAstralPower);
+    const astralProject = mortype === "magician" || mortype === "aspectedmagician";
+    const matrix = !lacksMatrixDevice(actor);
+    const jumpIn = Number(actor?.system?.controlRig) > 0 || resonance;
+    const hasSpells = actor.items?.some((item) => item.type === "spell" || item.type === "ritual");
+    return {
+        magic,
+        resonance,
+        castSpells: useSpells || hasSpells,
+        adeptPowers: usePowers,
+        astralPerceive,
+        astralProject,
+        matrix,
+        jumpIn,
+    };
 }
 
 function defenseChoice(label, hint, topic, badge) {
@@ -698,6 +779,13 @@ function attackKindPage(actor) {
             ],
         }],
         blocks: [
+            block("rules", "Range bands", [
+                "Close is 0–3 meters. Near is 4–50 meters. Medium is 51–250 meters. Far is 251–500 meters. Extreme is past 500 meters.",
+                "Each weapon lists an Attack Rating per band. A blank band means that weapon cannot be used there. The attack dialog's distance row is the band Eden uses.",
+                settingOn("cantDodgeBullets")
+                    ? "You Can't Dodge Bullets is on. Each band past Close adds 1 to the attack's threshold, up to +4 at Extreme, before cover and other threshold moves."
+                    : "Against a normal Defense test, range still matters through the Attack Rating on that band.",
+            ], core(108)),
             block("rules", "The five steps, in order", attackSteps(false), core(104)),
         ],
     };
@@ -852,7 +940,7 @@ function attackConfirmPage(actor, data) {
             targets.length
                 ? `Targeted: ${targets.join(", ")}.`
                 : "No token is targeted. Target one before you roll, unless this is a shot into empty space.",
-            "The dialog's distance row is the range band. A melee attack uses Close. Eden adds Strength to a close-combat weapon's Close rating (Reaction for a whip, and Reaction as well on an unarmed item whose stored Close rating is 0).",
+            "The dialog's distance row is the range band: Close 0–3 m, Near 4–50 m, Medium 51–250 m, Far 251–500 m, Extreme 500+ m. A melee attack uses Close. Eden adds Strength to a close-combat weapon's Close rating (Reaction for a whip, and Reaction as well on an unarmed item whose stored Close rating is 0).",
             "Ammo is the selector in the same dialog. Changing it saves onto the weapon. Eden's selector does this: APDS is Attack Rating +2 and damage −1, explosive is damage +1, flechette is Attack Rating +1 and damage −1, gel is Stun, stick-n-shock is Stun with Attack Rating +1 and damage −1.",
             settingOn("highStrengthAddsDamage")
                 ? "High Strength Adds Damage is on. Close-combat damage on the dialog already includes that bonus when the weapon qualifies. Do not add it a second time."
@@ -940,11 +1028,15 @@ function spellListPage(actor, kind) {
             compendiumChoice("Look up a ritual", "Rituals compendium in shadowrun-data.", "rituals", "any"),
         ],
     });
+    const gates = actorGates(actor);
     return {
         kicker: "Cast spell · major · your turn",
         title: "Which spell?",
         lead: "Casting is Sorcery + Magic. Adjust the spell first, up to your Magic or your Sorcery, whichever is higher.",
         leadCite: core(130),
+        notice: gates.castSpells
+            ? ""
+            : "You need to be able to cast spells. Magicians, mystic adepts, and aspected magicians cast.",
         groups: groups.filter((group) => group.choices.length),
         blocks,
     };
@@ -959,6 +1051,14 @@ function spellConfirmPage(actor, data) {
             title: item.name,
             lead: "Ritual spellcasting is Sorcery with the ritual specialization. It is not one pass in a combat round.",
             leadCite: core(143),
+            groups: [{
+                heading: "After the ritual roll",
+                choices: [
+                    choice("Resist drain", "Willpower + tradition attribute against the ritual's drain.", {
+                        go: "spell-drain", itemId: item.id, cite: core(127),
+                    }),
+                ],
+            }],
             blocks: [
                 block("rules", "What the book asks", [
                     "A ritual has a leader, a foundation, reagents, and a seal. Failure has its own consequences. Printed pp. 143–144.",
@@ -1003,13 +1103,71 @@ function spellConfirmPage(actor, data) {
             "The spell dialog adjusts Amp Up and area radius. It does not spend the Shift Area minor. Mark that minor yourself when you move an area you are already sustaining.",
         ], core(130)));
     }
+    const gates = actorGates(actor);
     return {
         kicker: combat ? "Combat spell" : "Spell",
         title: item.name,
         lead: area ? "Area spell. One casting, everyone in the area." : "Single target, unless the spell's own text says otherwise.",
         leadCite: combat ? core(131) : core(130),
+        notice: gates.castSpells ? "" : "You need to be able to cast spells. Magicians, mystic adepts, and aspected magicians cast. Mundanes and adepts without spellcasting do not.",
+        groups: [{
+            heading: "After the casting test",
+            note: "Drain always follows the Sorcery + Magic roll.",
+            choices: [
+                choice("Resist drain", "Willpower + tradition attribute against the Drain Value.", {
+                    go: "spell-drain", itemId: item.id, cite: core(127),
+                }),
+            ],
+        }],
         blocks,
         launch: { type: "spell", label: "Open the spell roll" },
+    };
+}
+
+function spellDrainPage(actor, data) {
+    const item = data.itemId ? actor.items.get(data.itemId) : null;
+    const attrKey = actor.system?.tradition?.attribute;
+    const attrName = attrKey
+        ? (game.i18n.localize(`attrib.${attrKey}`) || attrKey)
+        : "tradition attribute";
+    const wil = attributePool(actor, "wil");
+    const trad = attrKey ? attributePool(actor, attrKey) : null;
+    const pool = actor.system?.defensepool?.drain?.base
+        ?? ((wil ?? 0) + (trad ?? 0));
+    const drainValue = item?.system?.drain;
+    return {
+        kicker: "Drain",
+        title: item ? `Drain from ${item.name}` : "Resist drain",
+        lead: "After every magical action, resist the Drain Value. Leftover drain is Stun unless that action says it became Physical.",
+        leadCite: core(127),
+        notice: attrKey
+            ? ""
+            : "This sheet has no tradition attribute set. Open the character and pick a tradition so Eden knows which attribute pairs with Willpower.",
+        infoFirst: true,
+        groups: [{
+            heading: "Do it",
+            choices: [
+                choice("Mark a major used", "Casting spent the major.", {
+                    action: "tally", track: "major", delta: "1",
+                }),
+            ],
+        }],
+        blocks: [
+            block("rules", "How drain works", [
+                `Roll Willpower + ${attrName}. Each hit cancels 1 point of Drain Value.`,
+                drainValue != null
+                    ? `This formula starts at Drain Value ${drainValue}. Amp Up and Increase Area raise it before you resist.`
+                    : "Read the Drain Value from the spell or the roll card after adjustments.",
+                "Drain is not healed by magic or medkits. Edge can still clear boxes.",
+            ], core(127)),
+            edenBlock([
+                Number.isFinite(Number(pool))
+                    ? `Eden's drain pool on this sheet is ${pool} (${attrName} + Willpower). The button opens that pool as a common check.`
+                    : "The button opens Willpower plus the tradition attribute when the sheet can build that pool.",
+                "Apply leftover boxes to Stun, or to Physical if the action said the drain became Physical (usually when leftover drain exceeds Magic).",
+            ]),
+        ],
+        launch: { type: "pool", pool: "drain", label: `Roll Willpower + ${attrName}` },
     };
 }
 
@@ -1186,11 +1344,15 @@ function matrixPage(actor) {
     const actions = matrixActions();
     const major = actions.filter((action) => action.major);
     const minor = actions.filter((action) => !action.major);
+    const gates = actorGates(actor);
     return {
         kicker: "Matrix and drones",
         title: "Where is this action happening?",
         lead: "A matrix pass is its own initiative. If the combatant is flagged astral or matrix, the tally at the top uses that initiative branch.",
         leadCite: core(174),
+        notice: gates.matrix
+            ? ""
+            : "You need a connected matrix device. On the Matrix tab, switch a device online and tick it for the pool. Technomancers use a living persona.",
         groups: [
             {
                 heading: "Minor action",
@@ -1201,8 +1363,10 @@ function matrixPage(actor) {
             {
                 heading: "Major action",
                 choices: [
-                    choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", { go: "forms", badge: "Major", cite: core(185) }),
-                    topicChoice("Jump in", "Then use the vehicle's weapons.", "jump-in", "Major"),
+                    choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", {
+                        go: "forms", badge: "Major", cite: core(185), dim: !gates.resonance && !forms.length,
+                    }),
+                    gatedTopic("Jump in", "Then use the vehicle's weapons.", "jump-in", "Major", !gates.jumpIn),
                 ],
             },
             {
@@ -1226,11 +1390,15 @@ function matrixPage(actor) {
 
 function formsPage(actor) {
     const forms = actor.items.filter((item) => item.type === "complexform");
+    const gates = actorGates(actor);
     return {
         kicker: "Complex form · major",
         title: "Thread a form",
         lead: "Threading is a major action. Fading is the technomancer's version of drain.",
         leadCite: core(185),
+        notice: gates.resonance || forms.length
+            ? ""
+            : "You need Resonance. Complex forms are for technomancers.",
         groups: [{
             choices: forms.map((item) => choice(item.name, `Fading ${item.system.fading ?? "?"}. ${item.system.skill || "No skill"}.`, {
                 go: "matrix-confirm",
@@ -1423,11 +1591,30 @@ function topicPage(id, actor, data = {}) {
         title: topic.title,
         lead: topic.lead,
         leadCite: ruleCite(id),
+        notice: topicGateNotice(id, actor),
         groups,
         blocks: topic.blocks ?? [],
         infoFirst: true,
         launch: topic.launch ?? null,
     };
+}
+
+function topicGateNotice(id, actor) {
+    if (!actor) return "";
+    const gates = actorGates(actor);
+    if (id === "astral-projection" && !gates.astralProject) {
+        return "You must be able to astrally project. Full and aspected magicians can. Mystic adepts perceive and do not project.";
+    }
+    if (id === "shift-perception" && !gates.astralPerceive) {
+        return "You need the ability to perceive astrally. Magicians, aspected magicians, mystic adepts, or an adept with Astral Perception.";
+    }
+    if (id === "jump-in" && !gates.jumpIn) {
+        return "You need a vehicle control rig rating on the sheet to jump in.";
+    }
+    if ((id === "summon" || id === "banish" || id === "command-spirit" || id === "focus") && !gates.magic) {
+        return "You need Magic. Mundanes and technomancers do not take these actions.";
+    }
+    return "";
 }
 
 function topicNextChoices(topic) {
