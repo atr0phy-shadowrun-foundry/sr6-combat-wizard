@@ -236,7 +236,7 @@ function homePage(actor) {
     const gates = actorGates(actor);
     const major = choice("Major action", "On your turn: attack, cast a spell, sprint, reload, a skill test.", { go: "major", clear: CLEAR, badge: "Major", cite: core(40), dim: offTurn });
     const minor = choice("Minor action", "On your turn: move, aim, take cover, drop prone.", { go: "minor", clear: CLEAR, badge: "Minor", cite: core(41), dim: offTurn });
-    const anytime = choice("Anytime action", "On or off your turn: dodge, block, hit the dirt, full defense.", { go: "anytime", clear: CLEAR, badge: "Anytime", cite: core(42) });
+    const anytime = choice("Anytime action", "On or off your turn: dodge, block, hit the dirt, full defense.", { go: "anytime", clear: CLEAR, badge: "Anytime", cite: core(41) });
     const edge = choice("Spend Edge", "Boosts on a roll, and Edge actions.", { go: "edge", clear: CLEAR, badge: "Edge", cite: core(44) });
     return {
         groups: [
@@ -299,7 +299,7 @@ function majorPage(actor) {
                 heading: "Combat",
                 note: "Hurt someone, move fast, or get a weapon ready.",
                 choices: [
-                    choice("Attack", "A weapon, a fist, a thrown weapon, a grenade.", { go: "attack", badge: "Major", cite: core(40) }),
+                    choice("Attack", "A weapon, a fist, a thrown weapon, a grenade.", { go: "attack", badge: "Major", cite: core(104) }),
                     topicChoice("Sprint", "15 meters plus hits, instead of a normal move.", "sprint", "Major"),
                     choice("Reload a weapon", "Anything other than a smartgun reload.", { go: "reload", kind: "plain", badge: "Major", cite: core(43) }),
                     topicChoice("Ready Weapon", "Draw or stow.", "ready-weapon", "Major"),
@@ -325,11 +325,11 @@ function majorPage(actor) {
                 note: "Persona work, complex forms, and jumping into a rig.",
                 choices: [
                     choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", {
-                        go: "forms", badge: "Major", cite: core(185), dim: !gates.resonance && !forms.length,
+                        go: "forms", badge: "Major", cite: core(189), dim: !gates.resonance && !forms.length,
                     }),
                     gatedTopic("Jump in", "Then use the vehicle's weapons.", "jump-in", "Major", !gates.jumpIn),
                     choice("Matrix actions", "Major and minor actions from the system list.", {
-                        go: "matrix", cite: core(174), dim: !gates.matrix,
+                        go: "matrix", cite: core(179), dim: !gates.matrix,
                     }),
                 ],
             },
@@ -382,7 +382,7 @@ function minorPage(actor) {
                     topicChoice("Call a Shot", "−4 dice, +2 damage.", "call-shot", "Minor"),
                     topicChoice("Multiple Attacks", "Split the pool.", "multiple-attacks", "Minor"),
                     topicChoice("Off-hand", "No Edge gain or spend with that hand.", "off-hand"),
-                    choice("Reload a smartgun", "The next clip is in hand.", { go: "reload", kind: "smart", badge: "Minor", cite: core(43) }),
+                    choice("Reload a smartgun", "The next clip is in hand.", { go: "reload", kind: "smart", badge: "Minor", cite: core(42) }),
                 ],
             },
             {
@@ -397,7 +397,7 @@ function minorPage(actor) {
                     topicChoice("Command a drone", "Give the drone an order.", "command-drone", "Minor"),
                     adeptChoice(actor, gates),
                     choice("Matrix actions", "Major and minor actions from the system list.", {
-                        go: "matrix", cite: core(174), dim: !gates.matrix,
+                        go: "matrix", cite: core(179), dim: !gates.matrix,
                     }),
                     compendiumChoice("Look up a focus", "Foci compendium in shadowrun-data.", "foci", "any"),
                 ],
@@ -425,7 +425,7 @@ function anytimePage() {
         title: "Anytime action",
         notice: "You still need the action. A minor spent here is gone from your own turn.",
         lead: "The real Defense roll is the button on the attack card. Defenses below walk you through it.",
-        leadCite: core(42),
+        leadCite: core(41),
         groups: [
             { heading: "Minor action", choices: anytimeMinors() },
             { heading: "Major action", choices: anytimeMajors() },
@@ -490,7 +490,7 @@ function stateMatrixPage(actor) {
                         go: "matrix", cite: core(179),
                     }),
                     choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", {
-                        go: "forms", badge: "Major", cite: core(185),
+                        go: "forms", badge: "Major", cite: core(189),
                     }),
                     matrixActionChoice("full_matrix_defense", "Add your Willpower to Matrix Defense tests this round."),
                 ].filter(Boolean),
@@ -582,6 +582,9 @@ function stateAstralPage(actor) {
                 "Astral running covers 5 kilometers a round and you see nothing on the way. An astral walk covers 100 meters a round and you can look around.",
                 "Built things are faint and you pass through them. Other astral beings can slow you, and earth stops you.",
             ], core(160)),
+            block("rules", "What stops you", [
+                "Earth and active mana barriers block astral movement. Crossing or fighting through a barrier is its own test.",
+            ], core(161)),
             edenBlock([
                 "Shift Perception does not flip the combatant initiative flag. Projection needs the combatant set to astral before the tracker uses that pool.",
                 "Astral combat is not a finished attack-and-damage path between two tokens. Roll the skill, then settle damage in chat.",
@@ -766,7 +769,7 @@ function incomingDoPage(actor, topic) {
         choices.push(choice("Mark prone", "Set the prone status on the token.", {
             action: "status",
             status: plan.status,
-            cite: core(42),
+            cite: core(41),
         }));
     }
     const rule = choice("The full rule", "What the book and Eden each handle.", { go: "topic", topic, cite: ruleCite(topic) });
@@ -803,7 +806,7 @@ function attackKindPage(actor) {
         kicker: "Attack · major · your turn",
         title: "How are you attacking?",
         lead: "One attack is one major action. Called shots, multiple attacks, and aim are minors that ride along with it. You will get those on the last page.",
-        leadCite: core(40),
+        leadCite: core(42),
         groups: [{
             choices: [
                 weaponChoice("Melee", "Close combat, unarmed, a cyber weapon.", "melee", counts),
@@ -913,7 +916,7 @@ function fireModePage(actor, data) {
             "Narrow burst is 4 rounds, Attack Rating −4, damage +2. Wide burst is 4 rounds, Attack Rating −2, damage +1, and Eden accepts it only when exactly two tokens are targeted.",
             "Full auto is 10 rounds and Attack Rating −6, then another −2 Attack Rating per meter of radius after the first. The dialog does not add damage for full auto.",
             "High Strength Reduces Recoil, when that world setting is on, can shrink a two-handed gun's Attack Rating penalty. The weapon needs its two-handed flag.",
-        ], core(108)),
+        ], core(109)),
     ];
     const barrel = secondBarrelSection(actor, item);
     if (!choices.length) {
@@ -929,7 +932,7 @@ function fireModePage(actor, data) {
         kicker: item.name,
         title: "Which fire mode?",
         lead: "Eden reads the mode boxes on the weapon. The attack dialog starts on the mode you pick here.",
-        leadCite: core(108),
+        leadCite: core(109),
         groups: [
             { choices },
             ...(barrel ? [barrel] : []),
@@ -948,18 +951,18 @@ function faAreaPage(actor, data) {
         kicker: item?.name ?? "Full auto",
         title: "How wide is the full-auto burst?",
         lead: "Ten rounds. Each meter past a 1-meter radius is another −2 Attack Rating. Three or more targets require full auto.",
-        leadCite: core(108),
+        leadCite: core(109),
         groups: [{
             choices: [1, 2, 3, 4, 5, 6].map((meters) => choice(
                 `${meters}m radius`,
                 meters === 1 ? "The base full-auto penalty only." : `Attack Rating −${6 + (meters - 1) * 2}.`,
-                { go: "attack-confirm", itemId: data.itemId, fireMode: "FA", faArea: String(meters), cite: core(108) },
+                { go: "attack-confirm", itemId: data.itemId, fireMode: "FA", faArea: String(meters), cite: core(109) },
             )),
         }],
         blocks: [
             block("rules", "Targets", [
                 "Full auto is how one attack reaches an area. Everyone in the area defends. Eden compares Edge using the highest Defense Rating among your targets.",
-            ], core(108)),
+            ], core(109)),
         ],
     };
 }
@@ -990,7 +993,7 @@ function attackConfirmPage(actor, data) {
             "Call a Shot is −4 dice and +2 damage. Type the −4. Add the +2 to the Damage Value before soak.",
             "Multiple Attacks splits the pool evenly, rounding down. Open one roll per attack and set each pool yourself.",
             "An off-hand weapon takes its penalty from printed p. 110. Type it into the modifier.",
-        ], core(42)),
+        ], core(41)),
     ];
     const warnings = attackWarnings(data, targets);
     if (warnings.length) blocks.push(block("gap", "Before you click", warnings));
@@ -1008,7 +1011,7 @@ function attackConfirmPage(actor, data) {
         kicker: item.name,
         title: `Attack with ${item.name}`,
         lead: modeLine,
-        leadCite: data.fireMode ? core(108) : core(104),
+        leadCite: data.fireMode ? core(109) : core(104),
         notice: data.fireMode ? "Leave the fire mode in the dialog. Changing it throws away this choice." : "",
         groups: barrel ? [barrel] : [],
         blocks,
@@ -1068,8 +1071,10 @@ function spellListPage(actor, kind) {
     return {
         kicker: "Cast spell · major · your turn",
         title: "Which spell?",
-        lead: "Casting is Sorcery + Magic. Adjust the spell first, up to your Magic or your Sorcery, whichever is higher.",
-        leadCite: core(130),
+        lead: kind === "combat"
+            ? "Combat spells use the casting steps on printed p. 131: adjust, cast, defend, then drain."
+            : "Casting is Sorcery + Magic. Adjust the spell first, up to your Magic or your Sorcery, whichever is higher.",
+        leadCite: kind === "combat" ? core(131) : core(130),
         notice: gates.castSpells
             ? ""
             : "You need to be able to cast spells. Magicians, mystic adepts, and aspected magicians cast.",
@@ -1122,11 +1127,14 @@ function spellConfirmPage(actor, data) {
     if (combat && !direct && !indirect) facts.push("This combat spell has no direct or indirect type stored. Set combat spell type on the item. Until then, Eden will not know which defense to offer.");
     if (area) facts.push("The range is an area. Increase Area starts at a 2-meter radius and adds 1 Drain per extra 2 meters. The spell dialog has that control.");
     if (combat) facts.push("Amp Up adds 1 damage and 2 Drain per point, and the spell dialog offers it for combat spells. Direct damage starts at 0 plus Amp Up. Indirect damage starts at half Magic, rounded up, plus Amp Up.");
+    const castingCite = combat ? core(131) : core(130);
     const blocks = [
         block("rules", "Casting order", [
             "Adjust, then the Sorcery + Magic test, then drain. Drain resistance is your tradition attribute plus Willpower. Leftover drain is Stun unless the spell says it became Physical.",
-            "Shift Area, on a spell that allows it, is a minor action and does not add drain.",
-        ], core(130)),
+            combat
+                ? "Combat spells add the defense step before soak. Direct opposes Willpower. Indirect opposes Reaction + Willpower, then a Body soak."
+                : "Shift Area, on a spell that allows it, is a minor action and does not add drain.",
+        ], castingCite),
         edenBlock(facts.concat([
             system.duration === "sustained"
                 ? "If you mark the spell sustained, Eden subtracts 2 dice per sustained spell or complex form from later tests. The roll dialog has a checkbox for that penalty."
@@ -1137,14 +1145,20 @@ function spellConfirmPage(actor, data) {
     if (system.duration === "sustained") {
         blocks.push(block("gap", "Shift Area", [
             "The spell dialog adjusts Amp Up and area radius. It does not spend the Shift Area minor. Mark that minor yourself when you move an area you are already sustaining.",
-        ], core(130)));
+        ], core(131)));
+    }
+    if (combat) {
+        blocks.push(block("rules", "Amp Up and area", [
+            "Amp Up adds 1 damage and 2 Drain per point. Increase Area starts at a 2-meter radius and adds 1 Drain per extra 2 meters.",
+            "Those controls live on the spell dialog. Drain after adjustments is what you resist next.",
+        ], core(131)));
     }
     const gates = actorGates(actor);
     return {
         kicker: combat ? "Combat spell" : "Spell",
         title: item.name,
         lead: area ? "Area spell. One casting, everyone in the area." : "Single target, unless the spell's own text says otherwise.",
-        leadCite: combat ? core(131) : core(130),
+        leadCite: castingCite,
         notice: gates.castSpells ? "" : "You need to be able to cast spells. Magicians, mystic adepts, and aspected magicians cast. Mundanes and adepts without spellcasting do not.",
         groups: [{
             heading: "After the casting test",
@@ -1264,7 +1278,7 @@ function reloadHowPage(actor, data) {
         groups: [{
             heading: "Minor action",
             choices: [
-                { label: "Smartgun reload", hint: "The next clip is in hand.", action: "refill", itemId: item.id, track: "minor", badge: "Minor", cite: core(43) },
+                { label: "Smartgun reload", hint: "The next clip is in hand.", action: "refill", itemId: item.id, track: "minor", badge: "Minor", cite: core(42) },
             ],
         }, {
             heading: "Major action",
@@ -1274,8 +1288,8 @@ function reloadHowPage(actor, data) {
         }],
         blocks: [
             block("rules", "The two actions", [
-                "Reload Smartgun is a minor. Reload Weapon is a major. Both are on your turn.",
-            ], core(43)),
+                "Reload Smartgun is a minor (printed p. 42). Reload Weapon is a major (printed p. 43). Both are on your turn.",
+            ], core(42)),
         ],
     };
 }
@@ -1328,7 +1342,7 @@ function edgeBoostPage(id) {
         groups: [{
             heading: "Do it",
             choices: [
-                choice("Open Attack", "Spend the Edge from the roll dialog when the boost rides on an attack.", { go: "attack", clear: CLEAR, cite: core(40) }),
+                choice("Open Attack", "Spend the Edge from the roll dialog when the boost rides on an attack.", { go: "attack", clear: CLEAR, cite: core(104) }),
                 choice("Open the skill list", "Spend the Edge from a skill roll dialog.", { go: "skills", cite: core(92) }),
             ],
         }],
@@ -1348,10 +1362,10 @@ function edgeActionPage(id) {
     if (!action) return missingItem();
     const next = [];
     if (/attack|melee|ranged|shot|cover/i.test(action.attached)) {
-        next.push(choice("Open Attack", "Declare this Edge action with the attack it attaches to.", { go: "attack", clear: CLEAR, cite: core(40) }));
+        next.push(choice("Open Attack", "Declare this Edge action with the attack it attaches to.", { go: "attack", clear: CLEAR, cite: core(104) }));
     }
     if (/hit the dirt|block/i.test(action.attached)) {
-        next.push(choice("Open Anytime action", "Use the defense this Edge action rides on.", { go: "anytime", cite: core(42) }));
+        next.push(choice("Open Anytime action", "Use the defense this Edge action rides on.", { go: "anytime", cite: core(41) }));
     }
     if (!next.length) {
         next.push(choice("Open the skill list", "Roll the test this Edge action attaches to.", { go: "skills", cite: core(92) }));
@@ -1385,7 +1399,7 @@ function matrixPage(actor) {
         kicker: "Matrix and drones",
         title: "Where is this action happening?",
         lead: "A matrix pass is its own initiative. If the combatant is flagged astral or matrix, the tally at the top uses that initiative branch.",
-        leadCite: core(174),
+        leadCite: core(179),
         notice: gates.matrix
             ? ""
             : "You need a connected matrix device. On the Matrix tab, switch a device online and tick it for the pool. Technomancers use a living persona.",
@@ -1400,7 +1414,7 @@ function matrixPage(actor) {
                 heading: "Major action",
                 choices: [
                     choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", {
-                        go: "forms", badge: "Major", cite: core(185), dim: !gates.resonance && !forms.length,
+                        go: "forms", badge: "Major", cite: core(189), dim: !gates.resonance && !forms.length,
                     }),
                     gatedTopic("Jump in", "Then use the vehicle's weapons.", "jump-in", "Major", !gates.jumpIn),
                 ],
@@ -1431,7 +1445,7 @@ function formsPage(actor) {
         kicker: "Complex form · major",
         title: "Thread a form",
         lead: "Threading is a major action. Fading is the technomancer's version of drain.",
-        leadCite: core(185),
+        leadCite: core(189),
         notice: gates.resonance || forms.length
             ? ""
             : "You need Resonance. Complex forms are for technomancers.",
@@ -1440,7 +1454,7 @@ function formsPage(actor) {
                 go: "matrix-confirm",
                 itemId: item.id,
                 kind: "form",
-                cite: core(185),
+                cite: core(189),
             })),
         }],
         blocks: forms.length ? [
@@ -1459,11 +1473,11 @@ function matrixConfirmPage(actor, data) {
             kicker: "Complex form",
             title: item.name,
             lead: "Target a persona, device, or host first when the form is opposed.",
-            leadCite: core(185),
+            leadCite: core(189),
             blocks: [
                 block("rules", "Fading", [
-                    "Resist fading with Willpower plus Resonance. Leftover fading is Stun unless the form says otherwise. The complex-form chapter is printed pp. 185–195.",
-                ], core(185)),
+                    "Resist fading with Willpower plus Resonance. Leftover fading is Stun unless the form says otherwise. The complex-form chapter is printed pp. 187–195.",
+                ], core(189)),
                 edenBlock([
                     "Eden rolls the form and can offer the opposed test when the item has opposing attributes. Fading still needs the resistance roll from the card.",
                 ]),
@@ -1686,7 +1700,7 @@ function topicNextChoices(topic) {
     }
     if (topic.goAttack) {
         next.push(choice("Open Attack", "Run the attack this action rides on.", {
-            go: "attack", clear: CLEAR, cite: core(40),
+            go: "attack", clear: CLEAR, cite: core(104),
         }));
     }
     if (topic.goSkills) {
@@ -1707,7 +1721,7 @@ function grenadePage(actor, data) {
             go: "attack-confirm",
             itemId: existing.id,
             kind: "thrown",
-            cite: core(114),
+            cite: core(105),
         }));
     } else if (item) {
         choices.push(choice(`Add ${item.name} as a thrown weapon`, "Athletics. Attack Rating starts blank. Blast stays a table call.", {
@@ -1715,26 +1729,26 @@ function grenadePage(actor, data) {
             provision: "thrown",
             itemId: item.id,
             badge: "Add",
-            cite: core(114),
+            cite: core(105),
         }));
     }
     choices.push(choice("Roll Athletics (Throwing) anyway", "The dice only. Damage stays manual.", {
         go: "skill-confirm",
         skill: "athletics",
         spec: "throwing",
-        cite: core(114),
+        cite: core(105),
     }));
     return {
         kicker: "Grenade",
         title: item ? item.name : "This item is ammunition",
         lead: "The sheet can count ammunition. It cannot throw it until a thrown weapon exists.",
-        leadCite: core(114),
+        leadCite: core(115),
         groups: [{ choices }],
         blocks: [
             block("rules", "Throwing and blast", [
-                "Throwing uses Athletics. The blast, gas, or scatter that follows is on printed pp. 114–117.",
-                "Avoid Incoming is how someone leaves the area: Reaction + Athletics, then meters equal to the hits.",
-            ], core(114)),
+                "Throwing uses Athletics. Blast damage bands start on printed p. 114. Scatter tables and the thrown-grenade example are on printed p. 115.",
+                "Avoid Incoming is how someone leaves the area: Reaction + Athletics, then meters equal to the hits (printed p. 41).",
+            ], core(115)),
             gapBlock([
                 "Add the thrown weapon below if you want an attack card. The new item does not know the blast radius. Apply that, and any scatter, in chat.",
                 "Eden does not place a blast template or roll soak for each victim.",
@@ -1814,7 +1828,7 @@ function modeChoice(id, itemId) {
         itemId,
         fireMode,
         clear: id === "FA" ? "burst" : "faArea",
-        cite: core(108),
+        cite: core(109),
     };
     if (copy.burst) extra.burst = copy.burst;
     else if (id !== "FA") extra.burst = "none";
@@ -1834,7 +1848,7 @@ function spellChoice(item) {
         itemId: item.id,
         kind: "spell",
         badge,
-        cite: core(130),
+        cite: core(combat ? 131 : 130),
     });
 }
 
@@ -1881,13 +1895,15 @@ function ruleCite(topic) {
 }
 
 function kindCite(kind) {
+    // Printed pages: melee/gunnery skill lines 104–105, range bands 108,
+    // fire-mode math 109, blast/gas/spray 114–117, exotic/spray 117.
     return {
         melee: core(104),
         firearm: core(108),
-        thrown: core(114),
+        thrown: core(105),
         ordnance: core(114),
-        special: core(108),
-        gunnery: core(104),
+        special: core(117),
+        gunnery: core(105),
     }[kind] ?? core(104);
 }
 
@@ -1974,7 +1990,7 @@ function secondBarrelSection(actor, item) {
                     itemId: existing.id,
                     kind: kind || "",
                     clear: "fireMode,burst,faArea",
-                    cite: modes.length ? core(108) : core(104),
+                    cite: modes.length ? core(109) : core(104),
                 });
             }
             return choice(`Add ${plan.name}`, plan.hint, {
@@ -1982,7 +1998,7 @@ function secondBarrelSection(actor, item) {
                 provision: plan.id,
                 itemId: item.id,
                 badge: "Add",
-                cite: /launcher|grenade/i.test(plan.name) ? core(114) : core(108),
+                cite: /launcher|grenade/i.test(plan.name) ? core(116) : core(109),
             });
         }),
     };
@@ -2039,6 +2055,19 @@ function gapBlock(paragraphs, cite) {
     return block("gap", "What you still settle at the table", paragraphs, cite);
 }
 
+// Printed-page map (Berlin core). Prefer the writeup page, not the chapter start.
+// 35–39 tests · 40 allotment · 41–43 actions (Dodge/Block/Hit the Dirt/Avoid 41;
+ // Move/Take Aim/Multiple Attacks/Intercept/Reload Smartgun/Attack/Astral Projection 42;
+ // Full Defense/Observe/Reload Weapon/Sprint/Ready Weapon 43) · 44–48 Edge ·
+// 104–106 five steps · 108 range bands · 109 fire modes / FA radius · 110 off-hand /
+// knockdown start · 111 grapple / multiple-attack detail · 114–117 blast/gas/spray ·
+// 115 thrown scatter · 116 launchers · 117 spray/exotic · 118 environment ·
+// 127 drain · 130–131 spellcasting · 143 counterspell/ritual · 146–147 conjuring ·
+// 127 drain · 130 spellcasting · 131 combat spells / Amp Up · 143–144 rituals /
+// counterspell · 146–147 conjuring · 154 foci · 156 adepts · 159 assensing ·
+// 160 projection / astral combat · 161 astral barriers · 174 persona · 175
+// matrix steps · 176 dumpshock · 179–184 matrix actions · 189 complex forms ·
+// 196–199 rigging / gunnery mounts.
 function core(page) {
     return { book: "core_berlin", page, label: "Core" };
 }

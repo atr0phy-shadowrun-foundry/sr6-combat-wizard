@@ -1,6 +1,7 @@
 /**
  * Static guide pages. Wording is original. Printed pages are the Berlin core
- * book unless `book` is `companion`.
+ * book unless `book` is `companion`. Cite the action or procedure writeup page
+ * (see the map above `core()` in pages.js), not the chapter start.
  */
 
 const core = (page) => ({ book: "core_berlin", page, label: "Core" });
@@ -31,7 +32,7 @@ export const TOPICS = {
             rules("What it changes", [
                 "Declare it before the Defense test. It costs a minor action, and you can take it when it is not your turn if you still have the minor action.",
                 "The dice go on one Defense test. They do not linger for the rest of the round.",
-            ], core(42)),
+            ], core(41)),
             eden([
                 "The defender's roll is the Defense button on the attack card in chat. Add your Athletics rank in that dialog's modifier.",
                 "There is no Dodge button that remembers the minor action. Mark a minor on the tally above.",
@@ -49,7 +50,7 @@ export const TOPICS = {
         [
             rules("What it changes", [
                 "Same timing as Dodge, and only against a melee attack.",
-            ], core(42)),
+            ], core(41)),
             eden([
                 "On the Defense button of that melee attack, add your Close Combat rank in the modifier.",
             ]),
@@ -66,7 +67,7 @@ export const TOPICS = {
         [
             rules("What it changes", [
                 "This spends the major action. The Willpower dice stay on Defense tests through the end of the round, not only the next one.",
-            ], core(42)),
+            ], core(43)),
             eden([
                 "Each Defense dialog needs the Willpower dice typed into the modifier. Eden does not attach Full Defense to the token.",
                 "Mark a major on the tally.",
@@ -82,7 +83,7 @@ export const TOPICS = {
             rules("What it changes", [
                 "You gain Prone. The +2 Defense dice apply to the incoming attack you are diving from.",
                 "You take −2 dice on active skill tests until the end of your next turn, unless you Stand Up before then.",
-            ], core(42)),
+            ], core(41)),
             eden([
                 "Mark Prone on the token. The Prone status is a marker. It does not add the +2 or the later −2.",
                 "Type +2 on the Defense dialog, and −2 on your later skill and attack dialogs until you stand.",
@@ -106,7 +107,7 @@ export const TOPICS = {
             rules("What it changes", [
                 "Roll Reaction + Athletics, minus the dodge penalty if you have one. You move a number of meters equal to your hits, away from the blast or the gas.",
                 "You cannot Sprint in the same turn.",
-            ], core(43)),
+            ], core(41)),
             eden([
                 "The button below opens a normal roll dialog whose pool is Reaction + Athletics, including the untrained penalty if Athletics is 0.",
                 "Put the dodge penalty in the modifier. Move the token by the hits you roll. Eden does not move it.",
@@ -125,7 +126,7 @@ export const TOPICS = {
             rules("What it changes", [
                 "You need a minor action and a major action still available. The major action is the attack.",
                 "It happens when they enter Close, before they finish the move that brought them there.",
-            ], core(43)),
+            ], core(42)),
             eden([
                 "Go back and run the melee attack from this wizard. Mark both a minor and a major on the tally.",
                 "Nothing on the sheet checks that they entered Close, or that you had both actions.",
@@ -141,7 +142,7 @@ export const TOPICS = {
             rules("What it changes", [
                 "Move is a minor action on your turn. It does not roll.",
                 "You do not also Sprint or Avoid Incoming in that turn.",
-            ], core(41)),
+            ], core(42)),
             eden([
                 "Drag the token. A Foundry scene grid is whatever the scene uses, so count 10 meters yourself.",
                 "Mark a minor. The sheet will still let you move the token again.",
@@ -156,7 +157,7 @@ export const TOPICS = {
         [
             rules("What it changes", [
                 "Sprint is a major action. It replaces Move. You do not Avoid Incoming in the same turn.",
-            ], core(42)),
+            ], core(43)),
             eden([
                 "The button rolls Athletics. If the sheet's Athletics specialization or expertise is Sprinting, Eden adds those dice.",
                 "Move the token 15 meters plus 1 meter per hit. Mark a major.",
@@ -231,7 +232,7 @@ export const TOPICS = {
         [
             rules("What it changes", [
                 "Standing up ends the Hit the Dirt penalty early if that penalty was still on you.",
-            ], core(41)),
+            ], core(42)),
             eden([
                 "Clear Prone on the token. Stop typing the −2 from Hit the Dirt on later rolls.",
             ]),
@@ -310,7 +311,7 @@ export const TOPICS = {
             rules("What it changes", [
                 "You declare it with the attack. The −4 is on your pool. The +2 is on the Damage Value before soak.",
                 "Shank makes a melee called shot −2 instead of −4. Called Shot (Vitals) is a different Edge action.",
-            ], core(42)),
+            ], core(41)),
             eden([
                 "Type −4 in the attack dialog's modifier (or −2 if Shank applies).",
                 "After the attack hits, add 2 to the Damage Value before the defender soaks. The dialog has no called-shot damage field.",
@@ -326,7 +327,7 @@ export const TOPICS = {
             rules("What it changes", [
                 "The minor is spent with the Attack major. Split the pool evenly, rounding down. Two different attacks can be half and half, still rounding down.",
                 "Anticipation, the 4-Edge action, doubles a ranged pool before the split.",
-            ], core(42)),
+            ], core(111)),
             eden([
                 "Open one attack roll per swing or burst, and set each pool to the split number with the modifier.",
                 "Wide burst and full auto are the fire modes Eden checks against the number of targeted tokens. A split melee attack is not one of those checks.",
@@ -525,13 +526,13 @@ export const TOPICS = {
         "Minor · your turn",
         "Switch between astral and physical perception.",
         [
-            rules("What it changes", [
-                "A character who can perceive astrally switches to or from astral perception as a minor action.",
-            ], core(42)),
             rules("While perceiving astrally", [
                 "You are dual-natured and take −2 dice on every action that is not magic.",
                 "You can assense auras with Astral + Intuition while you can see the astral.",
             ], core(159)),
+            rules("The action", [
+                "Switching to or from astral perception is a minor action on your turn (printed p. 42).",
+            ], core(42)),
             eden([
                 "There is no perception toggle that changes which initiative track you are on. The combat tracker stores physical, matrix, or astral on the combatant, and someone sets that by hand.",
                 "Mark a minor. Assensing rolls are Astral + Intuition from the skill list if you need the dice.",
@@ -546,11 +547,14 @@ export const TOPICS = {
         [
             rules("What it changes", [
                 "A full or aspected magician who can project moves their consciousness to or from the astral as a major action. It takes effect at once, so they are on the astral for the rest of the round.",
-            ], core(42)),
+            ], core(160)),
             rules("On the astral", [
                 "Astral running covers 5 kilometers a round and you see nothing on the way. An astral walk covers 100 meters a round and you can look around.",
                 "Built things are faint and you pass through them. Other astral beings can slow you, and earth stops you. Astral initiative uses its own dice.",
             ], core(160)),
+            rules("Barriers", [
+                "Earth and active mana barriers block astral movement. Crossing or fighting through a barrier is its own test.",
+            ], core(161)),
             eden([
                 "The sheet stores an astral initiative pool. The combatant flag `iniType` has to be astral before the tracker uses it.",
                 "Astral combat is not a finished attack-and-damage path between two tokens. Use the astral attributes and agree the damage track in chat.",

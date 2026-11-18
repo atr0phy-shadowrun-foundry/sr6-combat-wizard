@@ -1,6 +1,6 @@
 # Shadowrun Turn Wizard
 
-Foundry module `sr6-turn-wizard` version 0.1.11.
+Foundry module `sr6-turn-wizard` version 0.1.12.
 
 It requires:
 
