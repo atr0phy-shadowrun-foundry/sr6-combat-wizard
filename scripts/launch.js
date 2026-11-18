@@ -6,6 +6,27 @@ const POOLS = {
             return actor._getSkillPool("athletics", undefined, "rea");
         },
     },
+    "grapple-grab": {
+        actionText: "Grapple",
+        checkText: "Close Combat + Agility",
+        pool(actor) {
+            return actor._getSkillPool("close_combat", undefined, "agi");
+        },
+    },
+    "grapple-hold": {
+        actionText: "Grapple hold",
+        checkText: "Strength + net hits",
+        pool(actor) {
+            return foundry.utils.getProperty(actor, "system.attributes.str.pool");
+        },
+    },
+    "grapple-follow": {
+        actionText: "Grapple",
+        checkText: "Close Combat + Strength",
+        pool(actor) {
+            return actor._getSkillPool("close_combat", undefined, "str");
+        },
+    },
 };
 
 export async function openPrintedPage(bookId, printedPage) {
@@ -183,4 +204,33 @@ export async function toggleStatus(actor, statusId) {
         return;
     }
     await actor.toggleStatusEffect(statusId);
+}
+
+export async function setStatusLevel(actor, statusId, level) {
+    if (typeof actor.toggleStatusEffect !== "function") {
+        ui.notifications.warn("This actor cannot toggle token statuses.");
+        return;
+    }
+    const want = Math.max(1, Number(level) || 1);
+    let effect = actor.effects.find((entry) => entry.statuses?.has?.(statusId));
+    if (!effect) {
+        await actor.toggleStatusEffect(statusId, { active: true });
+        effect = actor.effects.find((entry) => entry.statuses?.has?.(statusId));
+    }
+    if (!effect) {
+        ui.notifications.warn(`Could not mark ${statusId} on ${actor.name}.`);
+        return;
+    }
+    const current = Number(effect.system?.level) || 1;
+    if (want === current) {
+        ui.notifications.info(`${actor.name} already has ${statusId} ${want}.`);
+        return;
+    }
+    if (typeof effect.system?.increase === "function" && typeof effect.system?.decrease === "function") {
+        if (want > current) await effect.system.increase(want - current);
+        else await effect.system.decrease(current - want);
+        return;
+    }
+    const label = game.i18n.localize(CONFIG.statusEffects.find((entry) => entry.id === statusId)?.name ?? statusId);
+    await effect.update({ name: `${label} (${want})`, "system.level": want });
 }

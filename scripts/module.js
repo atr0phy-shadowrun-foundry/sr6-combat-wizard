@@ -36,7 +36,7 @@ Hooks.on("getSceneControlButtons", (controls) => {
     const tool = {
         name: "sr6TurnWizard",
         title: "Combat Turn Wizard",
-        icon: "fas fa-route",
+        icon: "fas fa-hat-wizard",
         button: true,
         order: 70,
         onClick: () => TurnWizard.show(),

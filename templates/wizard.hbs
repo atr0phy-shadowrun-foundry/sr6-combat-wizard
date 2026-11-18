@@ -1,3 +1,14 @@
+{{#*inline "blocks"}}
+{{#each blocks}}
+<section class="sr6tw-block {{tone}}">
+    <div class="sr6tw-block-head">
+        <h3>{{heading}}</h3>
+        {{#if cite}}<button type="button" class="sr6tw-cite" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>{{/if}}
+    </div>
+    {{#each paragraphs}}<p>{{this}}</p>{{/each}}
+</section>
+{{/each}}
+{{/inline}}
 <div class="sr6tw">
     <header class="sr6tw-bar">
         <div class="sr6tw-faceoff">
@@ -58,33 +69,12 @@
 
     <div class="sr6tw-scroll">
         {{#if kicker}}<p class="sr6tw-kicker">{{kicker}}</p>{{/if}}
-        <div class="sr6tw-title-row">
-            <h2>{{title}}</h2>
-            {{#if lead}}
-            <span class="sr6tw-help rules">
-                <button type="button" class="sr6tw-help-btn" aria-label="This step">?</button>
-                <span class="sr6tw-tip" role="tooltip">
-                    <p>{{lead}}</p>
-                    {{#if leadCite}}
-                    <button type="button" data-action="book" data-book="{{leadCite.book}}" data-page="{{leadCite.page}}">{{leadCite.label}} p. {{leadCite.page}}</button>
-                    {{/if}}
-                </span>
-            </span>
-            {{/if}}
-            {{#each blocks}}
-            <span class="sr6tw-help {{tone}}">
-                <button type="button" class="sr6tw-help-btn" aria-label="{{heading}}">?</button>
-                <span class="sr6tw-tip" role="tooltip">
-                    <strong>{{heading}}</strong>
-                    {{#each paragraphs}}<p>{{this}}</p>{{/each}}
-                    {{#if cite}}
-                    <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
-                    {{/if}}
-                </span>
-            </span>
-            {{/each}}
-        </div>
+        <h2 class="sr6tw-title">{{title}}</h2>
+        {{#if lead}}
+        <p class="sr6tw-lead">{{lead}}{{#if leadCite}} <button type="button" class="sr6tw-cite" data-action="book" data-book="{{leadCite.book}}" data-page="{{leadCite.page}}">{{leadCite.label}} p. {{leadCite.page}}</button>{{/if}}</p>
+        {{/if}}
         {{#if notice}}<p class="sr6tw-notice">{{notice}}</p>{{/if}}
+        {{#if infoFirst}}{{> blocks}}{{/if}}
         {{#if steps}}
         <ol class="sr6tw-steps">
             {{#each steps}}<li>{{this}}</li>{{/each}}
@@ -120,6 +110,7 @@
                     {{#if spec}}data-spec="{{spec}}"{{/if}}
                     {{#if matrixId}}data-matrix-id="{{matrixId}}"{{/if}}
                     {{#if pool}}data-pool="{{pool}}"{{/if}}
+                    {{#if launch}}data-launch="{{launch}}"{{/if}}
                     {{#if pack}}data-pack="{{pack}}"{{/if}}
                     {{#if documentId}}data-document-id="{{documentId}}"{{/if}}
                     {{#if actorUuid}}data-actor-uuid="{{actorUuid}}"{{/if}}
@@ -128,6 +119,7 @@
                     {{#if track}}data-track="{{track}}"{{/if}}
                     {{#if delta}}data-delta="{{delta}}"{{/if}}
                     {{#if status}}data-status="{{status}}"{{/if}}
+                    {{#if level}}data-level="{{level}}"{{/if}}
                     {{#if disabled}}disabled{{/if}}>
                     <span class="sr6tw-choice-copy">
                         <span class="sr6tw-choice-label">{{label}}</span>
@@ -152,6 +144,7 @@
         </section>
         {{/each}}
 
+        {{#unless infoFirst}}{{> blocks}}{{/unless}}
     </div>
 
     <footer class="sr6tw-foot">

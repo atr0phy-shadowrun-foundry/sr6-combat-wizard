@@ -1,7 +1,7 @@
 import { destinationForItem, importFromCompendium, openPack } from "./compendiums.js";
 import { buildProvision, findByGenesis } from "./provisions.js";
 import { buildPage, resolveActing } from "./pages.js";
-import { openPrintedPage, refillWeapon, runLaunch, toggleStatus } from "./launch.js";
+import { openPrintedPage, refillWeapon, runLaunch, setStatusLevel, toggleStatus } from "./launch.js";
 import { addTally } from "./tally.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -18,7 +18,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         classes: ["sr6-turn-wizard"],
         tag: "form",
         window: {
-            icon: "fas fa-route",
+            icon: "fas fa-hat-wizard",
             resizable: true,
             minimizable: true,
         },
@@ -196,7 +196,8 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         event.preventDefault();
         const actor = this.actor;
         if (!actor || !target.dataset.status) return;
-        await toggleStatus(actor, target.dataset.status);
+        if (target.dataset.level) await setStatusLevel(actor, target.dataset.status, target.dataset.level);
+        else await toggleStatus(actor, target.dataset.status);
         return this.render();
     }
 

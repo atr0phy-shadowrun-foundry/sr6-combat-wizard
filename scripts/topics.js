@@ -40,6 +40,7 @@ export const TOPICS = {
                 "If the world is using You Can't Dodge Bullets, Dodge moves the attack's threshold instead of adding dice. The numbers are on Companion pp. 151–152. Type the change into the attack dialog. Eden already adds one threshold point per range band past Close.",
             ], companion(151)),
         ],
+        { mark: "minor" },
     ),
     block: topic(
         "Block",
@@ -56,6 +57,7 @@ export const TOPICS = {
                 "The Wrest Edge action replaces this defense with Close Combat + Agility against the attacker's Strength. That action is not in Eden's Edge list. See Edge in this wizard.",
             ], core(47)),
         ],
+        { mark: "minor" },
     ),
     "full-defense": topic(
         "Full Defense",
@@ -70,6 +72,7 @@ export const TOPICS = {
                 "Mark a major on the tally.",
             ]),
         ],
+        { mark: "major" },
     ),
     "hit-the-dirt": topic(
         "Hit the Dirt",
@@ -89,6 +92,7 @@ export const TOPICS = {
             ], core(47)),
         ],
         {
+            mark: "minor",
             choices: [
                 { label: "Mark Prone on your token", action: "status", status: "prone", hint: "Toggles the Prone status Eden already ships." },
             ],
@@ -109,6 +113,7 @@ export const TOPICS = {
             ]),
         ],
         {
+            mark: "minor",
             launch: { type: "pool", pool: "avoid", label: "Roll Reaction + Athletics" },
         },
     ),
@@ -126,6 +131,7 @@ export const TOPICS = {
                 "Nothing on the sheet checks that they entered Close, or that you had both actions.",
             ]),
         ],
+        { mark: "both", goAttack: true },
     ),
     move: topic(
         "Move",
@@ -141,6 +147,7 @@ export const TOPICS = {
                 "Mark a minor. The sheet will still let you move the token again.",
             ]),
         ],
+        { mark: "minor" },
     ),
     sprint: topic(
         "Sprint",
@@ -156,37 +163,47 @@ export const TOPICS = {
             ]),
         ],
         {
+            mark: "major",
             launch: { type: "skill", skill: "athletics", spec: "sprinting", label: "Roll Athletics (Sprinting)" },
         },
     ),
     "take-cover": topic(
         "Take Cover",
         "Minor · your turn",
-        "You are in Cover I, II, III, or IV.",
+        "Get behind something. You gain Cover I, II, III, or IV.",
         [
-            rules("What it changes", [
-                "Cover is a status with a rank. The rank is how much of you is hidden, and it feeds Defense Rating and some Edge comparisons. The cover ranks are on printed p. 52.",
-            ], core(41)),
+            rules("Taking cover", [
+                "Use something nearby as protection. The level is how much of you it hides: Cover I is a quarter, II is half, III is three quarters, and IV is all of you.",
+            ], core(42)),
+            rules("What cover does", [
+                "Each level adds +1 to your Defense Rating and +1 die to your Defense tests. Cover IV gives +4 to both.",
+                "Shooting out of cover costs an extra minor action to get clear. At Cover IV your attack also takes −2 dice.",
+                "You cannot gain Edge while attacking from cover. You can still gain it when defending.",
+            ], core(52)),
             eden([
                 "The token status Cover has four levels. Set the level to the rank you claimed. Eden does not ask which obstacle you used, and it does not add the rank to a Defense roll by itself.",
                 "When Attack Rating is compared with Defense Rating, tell the table the cover rank if the sheet's Defense Rating does not already include it.",
             ]),
         ],
+        { mark: "minor", cover: true },
     ),
     "take-aim": topic(
         "Take Aim",
         "Minor · your turn",
-        "+1 die on the attack. Once per round, and it can stack.",
+        "+1 die on your next attack. Once per round, and an unused bonus carries over.",
         [
             rules("What it changes", [
-                "The bonus is +1 die the first time this round. If you keep aiming at the same target, or you attack that target, the bonus can stack up to your Willpower.",
-                "A scope's bonus waits until you have taken this action.",
-            ], core(41)),
+                "Each Take Aim adds +1 die. You can take it once per round. If you do not use the bonus, it carries into the next round and keeps stacking, up to your Willpower.",
+                "A turn in which you take neither Take Aim nor Attack wipes the carried bonus.",
+                "It works with a ready firearm, bow, or exotic ranged weapon.",
+                "A scope's or vision magnification bonus waits until you have taken this action.",
+            ], core(42)),
             eden([
                 "Type the aim dice into the attack dialog's modifier when you fire or swing.",
                 "Eden does not remember aim from round to round, and a scope on the weapon is only dice if the item or a mod already added them.",
             ]),
         ],
+        { mark: "minor", goAttack: true },
     ),
     "drop-prone": topic(
         "Drop Prone",
@@ -201,6 +218,7 @@ export const TOPICS = {
             ]),
         ],
         {
+            mark: "minor",
             choices: [
                 { label: "Mark Prone on your token", action: "status", status: "prone" },
             ],
@@ -219,6 +237,7 @@ export const TOPICS = {
             ]),
         ],
         {
+            mark: "minor",
             choices: [
                 { label: "Clear or toggle Prone", action: "status", status: "prone" },
             ],
@@ -236,6 +255,7 @@ export const TOPICS = {
                 "The sheet has no hands. Say what you dropped in chat and mark a minor.",
             ]),
         ],
+        { mark: "minor" },
     ),
     "pick-up": topic(
         "Pick Up / Put Down Object",
@@ -249,6 +269,7 @@ export const TOPICS = {
                 "Drag an item in Foundry if you are moving it between actors. The action cost is still the tally.",
             ]),
         ],
+        { mark: "major" },
     ),
     "ready-weapon": topic(
         "Ready Weapon",
@@ -263,20 +284,23 @@ export const TOPICS = {
                 "Agree at the table which items are in hand. Mark the major if this draw was required.",
             ]),
         ],
+        { mark: "major" },
     ),
     "quick-draw": topic(
         "Quick Draw",
         "Minor · your turn",
-        "Draw a pistol, a taser, or a small melee weapon and attack with it.",
+        "Draw a pistol-sized weapon or a small throwing weapon and attack with it at once.",
         [
             rules("What it changes", [
-                "Quick Draw is a minor that rides with the attack. The weapon has to be the kind the action allows, and it has to be where you can reach it.",
-            ], core(41)),
+                "Quick Draw is a minor that has to go with the Attack major. It covers a pistol, a pistol-sized weapon, or a small throwing weapon.",
+                "You need gear, an augmentation, or a quality that grants Quick Draw. Without one you cannot take this action.",
+            ], core(42)),
             eden([
                 "Run the attack from this wizard. Mark a minor for the draw and a major for the attack.",
                 "The sheet will not refuse a rifle or a weapon that was in a bag.",
             ]),
         ],
+        { mark: "minor", goAttack: true },
     ),
     "call-shot": topic(
         "Call a Shot",
@@ -292,6 +316,7 @@ export const TOPICS = {
                 "After the attack hits, add 2 to the Damage Value before the defender soaks. The dialog has no called-shot damage field.",
             ]),
         ],
+        { mark: "minor", goAttack: true },
     ),
     "multiple-attacks": topic(
         "Multiple Attacks",
@@ -307,62 +332,100 @@ export const TOPICS = {
                 "Wide burst and full auto are the fire modes Eden checks against the number of targeted tokens. A split melee attack is not one of those checks.",
             ]),
         ],
+        { mark: "minor", goAttack: true },
     ),
     "off-hand": topic(
         "Off-hand weapon",
-        "With an attack",
-        "A weapon in the off hand is harder to use.",
+        "With an attack · no action cost",
+        "Attacking with your off hand costs you Edge, not dice.",
         [
             rules("What it changes", [
-                "The off-hand penalty, and the rest of that close-combat cluster (knockdown, grapple, several people on one target), is on printed pp. 110–111.",
+                "An off-hand attack can neither gain nor spend Edge. The Ambidextrous quality removes this.",
+                "With a weapon in each hand, the primary-hand attack still gains and spends Edge as normal. Splitting the pool between the two follows Multiple Attacks.",
             ], core(110)),
             eden([
-                "Weapons have a dual-hand flag used by the high-strength recoil setting. They do not have an off-hand penalty.",
-                "Type the off-hand penalty into the attack modifier.",
+                "Eden does not know which hand holds the weapon. Do not spend Edge on the off-hand roll, and tell the gamemaster if the roll would have earned Edge.",
+                "For two weapons, open one attack per weapon and split the pool with the modifier, as in Multiple Attacks.",
             ]),
         ],
+        { goAttack: true },
     ),
     knockdown: topic(
         "Knockdown",
-        "After a melee hit",
-        "A hard hit can put the target on the ground.",
+        "Not an action · after soak",
+        "Nobody rolls for a knockdown. It follows from how much damage got through.",
         [
-            rules("What it changes", [
-                "The knockdown test is in the close-combat section, printed pp. 110–111. Read that line before calling someone prone.",
+            rules("When it happens", [
+                "Any damage, from any attack, can do it. After the Damage Resistance test, compare the damage still standing to the character's Body. If it is higher than Body, the character is knocked down and gains Prone.",
+                "Prone stays until the character spends a Stand Up action.",
             ], core(110)),
             eden([
-                "A successful melee card does not offer a knockdown test, and it does not mark Prone on the target.",
+                "The soak card does not compare the result to Body and does not mark Prone. Check it yourself, then toggle Prone on the knocked-down token. The button below toggles it on the acting token.",
             ]),
         ],
+        {
+            choices: [
+                { label: "Mark Prone on your token", action: "status", status: "prone", hint: "You took more damage than your Body after soaking." },
+            ],
+        },
     ),
     grapple: topic(
         "Grapple",
-        "Melee attack",
-        "Grab and hold instead of dealing a normal hit.",
+        "Major · melee attack",
+        "Grab the target and hold on instead of dealing damage.",
         [
-            rules("What it changes", [
-                "Grapple is part of the same close-combat cluster, printed pp. 110–111. It is an attack, then a state the two characters are in.",
-            ], core(110)),
+            rules("Getting a hold", [
+                "Tell the gamemaster you are grappling, then make an unarmed Close Combat + Agility attack. The target defends as usual.",
+                "If it hits, the net hits do not become damage. Roll Strength plus those net hits against the target's Strength. Win and the target is restrained.",
+            ], core(111)),
+            rules("While someone is restrained", [
+                "The restrained character can only use physical actions to try to break free. Spells and Resonance still work.",
+                "Every attacker, the grappler included, gains Edge against them, and they take −4 on Defense tests.",
+                "An attack that misses them can land on the grappler. The grappler rolls Defense against that same attack.",
+            ], core(111)),
+            rules("Next turns · each is a Major", [
+                "Restrain: keep the hold. Close Combat + Strength against their Close Combat + Strength, and they take the −4.",
+                "Damage: Close Combat + Strength against their Strength + Reaction, and they take the −4. A hit deals unarmed damage, half your Strength rounded up, plus net hits.",
+                "Tackle: Close Combat + Strength against their Body + Strength, without the −4. A hit puts them Prone and deals Stun equal to your Body plus net hits, which they resist with Body.",
+                "Break free, for the one being held: Close Combat + Strength opposed, without the −4. Success frees them and deals no damage.",
+                "All of these use the unarmed Attack Rating.",
+            ], core(111)),
             eden([
-                "There is no grapple item, status, or opposed button. Roll the unarmed or martial-arts attack if you want the dice, then track the hold in chat.",
+                "Eden has no grapple roll, restrained status, or opposed button for these tests. The buttons below roll your side. The other side rolls their pool from their own sheet, and you compare hits in chat.",
+                "Type the net hits from the grab into the dialog's modifier before you roll Strength. Type the −4 into the restrained character's roll.",
                 "Martial art techniques on the sheet are reference items. Opening one does not roll the grapple.",
             ]),
         ],
+        {
+            mark: "major",
+            choiceHeading: "Rolls",
+            choices: [
+                { label: "Grab", hint: "Close Combat + Agility, the opening unarmed attack.", action: "launch", launch: "pool", pool: "grapple-grab", badge: "Major" },
+                { label: "Lock the hold", hint: "Strength, plus the grab's net hits in the modifier.", action: "launch", launch: "pool", pool: "grapple-hold" },
+                { label: "Restrain, damage, tackle, or break free", hint: "Close Combat + Strength, for every test once the hold is on.", action: "launch", launch: "pool", pool: "grapple-follow", badge: "Major" },
+            ],
+        },
     ),
     counterspell: topic(
         "Counterspell",
         "Major · anytime",
-        "Spend the major action to oppose a spell as it is cast.",
+        "Shield an area against spells, or take apart a spell that is already running.",
         [
-            rules("What it changes", [
-                "Counterspelling is a Sorcery specialization. The opposed dispel is on printed pp. 143–144.",
+            rules("Boosted defense", [
+                "Take the Counterspell major and roll Sorcery + Magic. Pick a sphere you can see, 2 meters in radius, plus 1 meter per dram of reagents spent.",
+                "Your net hits become extra dice for everyone inside it when they defend against spells. The boost lasts a number of rounds equal to your Magic.",
+            ], core(143)),
+            rules("Dispelling", [
+                "For a sustained or lasting spell. Roll Sorcery + Magic against twice the spell's Drain Value, counting any changes made when it was cast.",
+                "Each of your net hits cancels one of the spell's net hits. When the spell has none left, it is gone.",
             ], core(143)),
             eden([
                 "The button rolls Sorcery with the Counterspelling specialization if the sheet has it.",
-                "Two tokens cannot finish dispel, drain for the counter, or the spell fizzling. Compare hits in chat and apply the book.",
+                "For boosted defense, tell the defenders your net hits so they add them in their Defense dialog. For dispelling, the opposing pool is rolled separately, and the spell's hits are adjusted by hand.",
             ]),
         ],
         {
+            mark: "major",
             launch: { type: "skill", skill: "sorcery", spec: "counterspelling", label: "Roll Sorcery (Counterspelling)" },
         },
     ),
@@ -371,8 +434,10 @@ export const TOPICS = {
         "Major · your turn",
         "Conjuring + Magic, then services, then drain.",
         [
-            rules("What it changes", [
-                "Summoning is a major action. Services and the spirit's arrival are on printed pp. 146–149.",
+            rules("Summoning", [
+                "Choose the spirit's Force, then roll Conjuring + Magic against a pool of twice that Force, rolled for the spirit. You need at least one net hit. Each net hit is one service.",
+                "Drain equals the spirit's hits, not net hits. Resist it as spell drain. It is Stun, or Physical if it is higher than your Magic. If the drain knocks you out, the spirit goes home.",
+                "A spirit leaves after one sunrise and one sunset have passed, even with services left.",
             ], core(146)),
             eden([
                 "The button rolls Conjuring. If the sheet's specialization is Summoning, those dice are included.",
@@ -380,6 +445,7 @@ export const TOPICS = {
             ]),
         ],
         {
+            mark: "major",
             launch: { type: "skill", skill: "conjuring", spec: "summoning", label: "Roll Conjuring (Summoning)" },
         },
     ),
@@ -396,37 +462,46 @@ export const TOPICS = {
                 "Say the order in chat and mark a minor. If the spirit attacks, open this wizard on the spirit's token.",
             ]),
         ],
+        { mark: "minor" },
     ),
     banish: topic(
         "Banish Spirit",
         "Major · your turn",
-        "Any character may attempt it. It is Conjuring opposed by the spirit.",
+        "Conjuring + Magic against the spirit. Your net hits strip its services.",
         [
-            rules("What it changes", [
-                "Banishing is a major action. The opposed test and the drain are on printed pp. 146–149.",
-            ], core(146)),
+            rules("Banishing", [
+                "Use a major action to roll Conjuring + Magic against a pool of twice the spirit's Force. Each net hit removes one service the spirit still owes. At zero services it returns home.",
+                "Drain is twice the spirit's hits, not net hits. It is Stun, or Physical if it is higher than your Magic.",
+                "Spending reagents equal to the spirit's Force gives you a point of bonus Edge.",
+            ], core(147)),
             eden([
                 "The button is a Conjuring roll. Target the spirit first if you want the card to name them.",
                 "The spirit does not get an automated opposed roll from this button, and drain is a separate resistance test.",
             ]),
         ],
         {
+            mark: "major",
             launch: { type: "skill", skill: "conjuring", spec: "banishing", label: "Roll Conjuring (Banishing)" },
         },
     ),
     focus: topic(
         "Activate a Focus",
         "Minor · your turn",
-        "Turn a bonded focus on.",
+        "Turn a bonded focus on or off.",
         [
             rules("What it changes", [
-                "Activating a focus is a minor action for an awakened character. The focus rules start on printed p. 151.",
-            ], core(151)),
+                "Activating or deactivating a focus is a minor action. A focus only gives its power while it is active and bonded to you.",
+            ], core(40)),
+            rules("Staying active", [
+                "It stays active while you carry it: worn, held, or in a pocket or pouch. Losing it or losing consciousness switches it off, and you have to activate it again.",
+                "An active focus shows on the astral with your astral signature.",
+            ], core(154)),
             eden([
                 "Focus items sit on the sheet with a rating. Nothing toggles them active, and nothing adds their dice until a roll modifier or an effect does.",
                 "Say which focus is on, mark a minor, and type its bonus into the next roll if the effect is not already an active effect.",
             ]),
         ],
+        { mark: "minor" },
     ),
     perception: topic(
         "Observe in Detail",
@@ -441,6 +516,7 @@ export const TOPICS = {
             ]),
         ],
         {
+            mark: "major",
             launch: { type: "skill", skill: "perception", label: "Roll Perception" },
         },
     ),
@@ -450,13 +526,18 @@ export const TOPICS = {
         "Switch between astral and physical perception.",
         [
             rules("What it changes", [
-                "Assensing and astral perception are on printed pp. 159–161. Shifting is a minor action for someone who can perceive astrally.",
+                "A character who can perceive astrally switches to or from astral perception as a minor action.",
+            ], core(42)),
+            rules("While perceiving astrally", [
+                "You are dual-natured and take −2 dice on every action that is not magic.",
+                "You can assense auras with Astral + Intuition while you can see the astral.",
             ], core(159)),
             eden([
                 "There is no perception toggle that changes which initiative track you are on. The combat tracker stores physical, matrix, or astral on the combatant, and someone sets that by hand.",
                 "Mark a minor. Assensing rolls are Astral + Intuition from the skill list if you need the dice.",
             ]),
         ],
+        { mark: "minor" },
     ),
     "astral-projection": topic(
         "Astral Projection",
@@ -464,13 +545,18 @@ export const TOPICS = {
         "Leave the body and act on the astral.",
         [
             rules("What it changes", [
-                "Projection, astral combat, and astral barriers are on printed pp. 159–161. Astral initiative uses its own dice.",
-            ], core(159)),
+                "A full or aspected magician who can project moves their consciousness to or from the astral as a major action. It takes effect at once, so they are on the astral for the rest of the round.",
+            ], core(42)),
+            rules("On the astral", [
+                "Astral running covers 5 kilometers a round and you see nothing on the way. An astral walk covers 100 meters a round and you can look around.",
+                "Built things are faint and you pass through them. Other astral beings can slow you, and earth stops you. Astral initiative uses its own dice.",
+            ], core(160)),
             eden([
                 "The sheet stores an astral initiative pool. The combatant flag `iniType` has to be astral before the tracker uses it.",
                 "Astral combat is not a finished attack-and-damage path between two tokens. Use the astral attributes and agree the damage track in chat.",
             ]),
         ],
+        { mark: "major" },
     ),
     assist: topic(
         "Assist",
@@ -486,6 +572,7 @@ export const TOPICS = {
                 "Their dialog has a modifier. They type your hits in, capped at their rank. Eden does not move the dice across.",
             ]),
         ],
+        { mark: "major", goSkills: true },
     ),
     heal: topic(
         "First Aid",
@@ -493,7 +580,8 @@ export const TOPICS = {
         "Biotech + Logic. Then the boxes actually come off.",
         [
             rules("What it changes", [
-                "First aid, medkits, magic, and natural recovery are on printed pp. 118–121. First aid is a test against a threshold built from the wounds.",
+                "First aid is a Biotech + Logic test. The gamemaster sets the threshold from how bad the wounds are.",
+                "Hits past the threshold remove boxes. First aid, medkits, magic healing, and natural recovery share printed pp. 118–121.",
             ], core(118)),
             eden([
                 "The button rolls Biotech. Use the First Aid specialization if the sheet has it.",
@@ -501,6 +589,7 @@ export const TOPICS = {
             ]),
         ],
         {
+            mark: "major",
             launch: { type: "skill", skill: "biotech", spec: "first_aid", label: "Roll Biotech (First Aid)" },
         },
     ),
@@ -510,13 +599,14 @@ export const TOPICS = {
         "A commlink, a maglock, a tool that is not its own attack.",
         [
             rules("What it changes", [
-                "If the device has a skill test, it uses that skill. If it is truly simple, it is automatic and still costs the major action.",
+                "Spend a major action. If the device needs a skill test, roll that skill. If it is truly simple, it works with no roll and still costs the major.",
             ], core(43)),
             eden([
                 "Electronics, Engineering, and the other skills are in the skill list. Pick the one the device names.",
                 "There is no generic Use Device button, and locks and sensors are not a mini-game on the item.",
             ]),
         ],
+        { mark: "major", goSkills: true },
     ),
     "command-drone": topic(
         "Command Drone",
@@ -531,6 +621,7 @@ export const TOPICS = {
                 "Nothing spends a drone command or checks the RCC.",
             ]),
         ],
+        { mark: "minor" },
     ),
     "jump-in": topic(
         "Rigger Jump In",
@@ -538,13 +629,15 @@ export const TOPICS = {
         "You take over a vehicle or a drone.",
         [
             rules("What it changes", [
-                "Jumping in is a major action. Rigging, the RCC, and jumped-in initiative sit on printed pp. 196–201.",
+                "Jumping into a vehicle or drone is a major action. You take direct control through a datajack or similar link.",
+                "While jumped in, you use the vehicle's sensors and weapons. Rigging, the RCC, and jumped-in initiative are on printed pp. 196–201.",
             ], core(196)),
             eden([
                 "Vehicle sheets have a control mode (manual, rigged, RCC, autonomous). Set that mode on the vehicle.",
                 "This wizard does not switch the mode or move your persona into the vehicle. After you are jumped in, attack with the vehicle's weapons from the Gunnery list.",
             ]),
         ],
+        { mark: "major" },
     ),
     "burning-edge": topic(
         "Burning Edge",
@@ -552,15 +645,19 @@ export const TOPICS = {
         "Edge rank drops by 1, and every stored point is gone.",
         [
             rules("What it does", [
-                "Smackdown is an automatic success with four net hits, on a test the character can attempt.",
-                "Not Dead Yet survives an imminent killing blow and does not clear the danger.",
-                "Burned rank can be bought back with Karma later.",
+                "Burning Edge is permanent until you buy the rank back with Karma. Your Edge attribute drops by 1, and every Edge point you currently hold is spent.",
+                "Smackdown: automatic success with four net hits, on a test the character can attempt.",
+                "Not Dead Yet: survive an imminent killing blow. The danger around you does not go away.",
             ], core(48)),
             eden([
                 "The sheet will not burn a point of Edge attribute or empty the pool because you asked for Smackdown.",
                 "Edit the Edge attribute and the current Edge points, then apply the success or the survival in chat.",
             ]),
         ],
+        {
+            goAttack: true,
+            goSkills: true,
+        },
     ),
 };
 

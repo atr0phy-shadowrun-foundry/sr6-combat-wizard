@@ -71,6 +71,7 @@ export async function buildPage(state) {
     }));
     return {
         ...page,
+        infoFirst: page.infoFirst ?? (Boolean(page.launch) || !page.groups?.length),
         actor,
         acting: actingCard(acting),
         actors,
@@ -241,14 +242,7 @@ function majorPage(actor) {
                     choice("Reload a weapon", "Anything other than a smartgun reload.", { go: "reload", kind: "plain", badge: "Major", cite: core(43) }),
                     topicChoice("Ready Weapon", "Draw or stow.", "ready-weapon", "Major"),
                     topicChoice("Pick up or put down", "The careful version of drop.", "pick-up", "Major"),
-                ],
-            },
-            {
-                heading: "After a melee hit",
-                note: "Follow-ups the sheet does not track.",
-                choices: [
-                    topicChoice("Knockdown", "After a melee hit.", "knockdown"),
-                    topicChoice("Grapple", "A hold, tracked in chat.", "grapple"),
+                    topicChoice("Grapple", "Grab and hold instead of hitting. Rolls for the grab and the hold.", "grapple", "Major"),
                 ],
             },
             {
@@ -309,11 +303,11 @@ function minorPage(actor) {
                 heading: "With an attack",
                 note: "These ride with the Attack major.",
                 choices: [
-                    topicChoice("Take Aim", "+1 die, stacks to Willpower.", "take-aim", "Minor"),
+                    topicChoice("Take Aim", "+1 die, stacks to Willpower. Then open the attack.", "take-aim", "Minor"),
                     topicChoice("Quick Draw", "A small weapon, with the attack.", "quick-draw", "Minor"),
                     topicChoice("Call a Shot", "−4 dice, +2 damage.", "call-shot", "Minor"),
                     topicChoice("Multiple Attacks", "Split the pool.", "multiple-attacks", "Minor"),
-                    topicChoice("Off-hand", "Penalty from printed p. 110.", "off-hand", "Minor"),
+                    topicChoice("Off-hand", "No Edge gain or spend with that hand.", "off-hand"),
                     choice("Reload a smartgun", "The next clip is in hand.", { go: "reload", kind: "smart", badge: "Minor", cite: core(43) }),
                 ],
             },
@@ -361,6 +355,12 @@ function anytimePage() {
                 choices: [
                     choice("Tactical Roll", "1 Edge. Rides on Hit the Dirt.", { go: "edge-action", topic: "tactical_roll", badge: "1 Edge", cite: core(47) }),
                     choice("Wrest", "2 Edge. Replaces Block.", { go: "edge-action", topic: "wrest", badge: "2 Edge", cite: core(47) }),
+                ],
+            },
+            {
+                heading: "After you soak",
+                choices: [
+                    topicChoice("Knockdown", "Not an action. Damage left above your Body puts you Prone.", "knockdown"),
                 ],
             },
         ],
@@ -935,6 +935,14 @@ function edgeBoostPage(id) {
         title: boostName(id),
         lead: boost.when,
         leadCite: core(46),
+        infoFirst: true,
+        groups: [{
+            heading: "Do it",
+            choices: [
+                choice("Open Attack", "Spend the Edge from the roll dialog when the boost rides on an attack.", { go: "attack", clear: CLEAR, cite: core(40) }),
+                choice("Open the skill list", "Spend the Edge from a skill roll dialog.", { go: "skills", cite: core(92) }),
+            ],
+        }],
         blocks: [
             block("rules", "Effect", [boost.text, "Declare a pre-roll boost before the dice. A post-roll boost waits until you see the faces."], core(46)),
             edenBlock([
@@ -949,11 +957,23 @@ function edgeBoostPage(id) {
 function edgeActionPage(id) {
     const action = EDGE_ACTIONS[id];
     if (!action) return missingItem();
+    const next = [];
+    if (/attack|melee|ranged|shot|cover/i.test(action.attached)) {
+        next.push(choice("Open Attack", "Declare this Edge action with the attack it attaches to.", { go: "attack", clear: CLEAR, cite: core(40) }));
+    }
+    if (/hit the dirt|block/i.test(action.attached)) {
+        next.push(choice("Open Anytime action", "Use the defense this Edge action rides on.", { go: "anytime", cite: core(42) }));
+    }
+    if (!next.length) {
+        next.push(choice("Open the skill list", "Roll the test this Edge action attaches to.", { go: "skills", cite: core(92) }));
+    }
     return {
         kicker: `${action.cost} Edge · ${action.attached}`,
         title: actionName(id),
         lead: "An Edge action does not cost a minor or a major. It is declared before the test it attaches to.",
         leadCite: core(47),
+        infoFirst: true,
+        groups: [{ heading: "Do it", choices: next }],
         blocks: [
             block("rules", "Effect", [action.text], core(47)),
             edenBlock(action.inDialog ? [
@@ -1197,15 +1217,66 @@ function topicPage(id, actor, data = {}) {
     if (!topic) {
         return { title: "Missing topic", lead: "Go back.", groups: [], blocks: [] };
     }
+    const groups = [];
+    if (topic.choices?.length) {
+        groups.push({ heading: topic.choiceHeading || undefined, choices: topic.choices });
+    }
+    const next = topicNextChoices(topic);
+    if (next.length) groups.push({ heading: "Do it", choices: next });
     return {
         kicker: topic.kicker,
         title: topic.title,
         lead: topic.lead,
         leadCite: ruleCite(id),
-        groups: topic.choices?.length ? [{ choices: topic.choices }] : [],
-        blocks: topic.blocks,
+        groups,
+        blocks: topic.blocks ?? [],
+        infoFirst: true,
         launch: topic.launch ?? null,
     };
+}
+
+function topicNextChoices(topic) {
+    const next = [];
+    if (topic.mark === "minor") {
+        next.push(choice("Mark a minor used", "Count it on the tally at the top.", {
+            action: "tally", track: "minor", delta: "1",
+        }));
+    } else if (topic.mark === "major") {
+        next.push(choice("Mark a major used", "Count it on the tally at the top.", {
+            action: "tally", track: "major", delta: "1",
+        }));
+    } else if (topic.mark === "both") {
+        next.push(choice("Mark a minor used", "Intercept spends the minor here.", {
+            action: "tally", track: "minor", delta: "1",
+        }));
+        next.push(choice("Mark a major used", "The attack itself is the major.", {
+            action: "tally", track: "major", delta: "1",
+        }));
+    }
+    if (topic.cover) {
+        for (let level = 1; level <= 4; level++) {
+            next.push(choice(`Mark Cover ${["I", "II", "III", "IV"][level - 1]}`, `Set Cover level ${level} on your token.`, {
+                action: "status", status: "cover", level: String(level),
+            }));
+        }
+    }
+    if (topic.status && !topic.choices?.some((entry) => entry.status === topic.status)) {
+        const labels = { prone: "Mark Prone on your token" };
+        next.push(choice(labels[topic.status] || `Mark ${topic.status}`, "Toggle that status on the acting token.", {
+            action: "status", status: topic.status,
+        }));
+    }
+    if (topic.goAttack) {
+        next.push(choice("Open Attack", "Run the attack this action rides on.", {
+            go: "attack", clear: CLEAR, cite: core(40),
+        }));
+    }
+    if (topic.goSkills) {
+        next.push(choice("Open the skill list", "Pick the skill this action uses.", {
+            go: "skills", cite: core(92),
+        }));
+    }
+    return next;
 }
 
 function grenadePage(actor, data) {
