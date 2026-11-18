@@ -93,8 +93,6 @@ function pageHasActions(page) {
     return (page.groups ?? []).some((group) => (group.choices ?? []).length > 0);
 }
 
-const REF_CHIPS = { rules: "Rules", eden: "Eden", gap: "Table" };
-
 function splitBlocks(entries) {
     const guide = [];
     const refs = [];
@@ -104,11 +102,9 @@ function splitBlocks(entries) {
             guide.push(entry);
             continue;
         }
-        const tone = entry.tone || "rules";
         refs.push({
             ...entry,
-            tone,
-            chip: entry.chip || REF_CHIPS[tone] || "Rules",
+            tone: entry.tone || "rules",
         });
     }
     return { guide, refs };

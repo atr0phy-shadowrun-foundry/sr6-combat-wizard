@@ -14,7 +14,7 @@
 <nav class="sr6tw-refs" aria-label="Reference">
     {{#each refs}}
     <span class="sr6tw-help {{tone}}">
-        <button type="button" class="sr6tw-help-btn sr6tw-ref-chip" aria-label="{{heading}}">? {{chip}}</button>
+        <button type="button" class="sr6tw-help-btn" aria-label="{{heading}}">?</button>
         <span class="sr6tw-tip" role="tooltip">
             <strong>{{heading}}</strong>
             {{#each paragraphs}}<p>{{this}}</p>{{/each}}
@@ -87,12 +87,18 @@
 
     <div class="sr6tw-scroll">
         {{#if kicker}}<p class="sr6tw-kicker">{{kicker}}</p>{{/if}}
-        {{#if title}}<h2 class="sr6tw-title">{{title}}</h2>{{/if}}
+        {{#if title}}
+        <div class="sr6tw-heading">
+            <h2 class="sr6tw-title">{{title}}</h2>
+            {{> refs}}
+        </div>
+        {{else}}
+        {{> refs}}
+        {{/if}}
         {{#if lead}}
         <p class="sr6tw-lead">{{lead}}{{#if leadCite}} <button type="button" class="sr6tw-cite" data-action="book" data-book="{{leadCite.book}}" data-page="{{leadCite.page}}">{{leadCite.label}} p. {{leadCite.page}}</button>{{/if}}</p>
         {{/if}}
         {{#if notice}}<p class="sr6tw-notice">{{notice}}</p>{{/if}}
-        {{> refs}}
         {{#if infoFirst}}{{> blocks}}{{/if}}
         {{#if steps}}
         <ol class="sr6tw-steps">
