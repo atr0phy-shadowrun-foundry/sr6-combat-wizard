@@ -1,12 +1,12 @@
 {{#*inline "blocks"}}
 {{#each blocks}}
-<section class="sr6tw-block {{tone}}">
-    <div class="sr6tw-block-head">
+<details class="sr6tw-block {{tone}}" {{#if open}}open{{/if}}>
+    <summary class="sr6tw-block-head">
         <h3>{{heading}}</h3>
         {{#if cite}}<button type="button" class="sr6tw-cite" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>{{/if}}
-    </div>
+    </summary>
     {{#each paragraphs}}<p>{{this}}</p>{{/each}}
-</section>
+</details>
 {{/each}}
 {{/inline}}
 {{#*inline "refs"}}

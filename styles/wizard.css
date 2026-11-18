@@ -292,7 +292,11 @@
 }
 
 .sr6-turn-wizard .sr6tw-block-head {
-    justify-content: space-between;
+    justify-content: flex-start;
+}
+
+.sr6-turn-wizard .sr6tw-block-head .sr6tw-cite {
+    margin-left: auto;
 }
 
 .sr6-turn-wizard .sr6tw-refs {
@@ -539,6 +543,27 @@
 
 .sr6-turn-wizard .sr6tw-block.eden { border-left-color: var(--sr6tw-eden); }
 .sr6-turn-wizard .sr6tw-block.gap { border-left-color: var(--sr6tw-gap); }
+
+.sr6-turn-wizard details.sr6tw-block > summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.sr6-turn-wizard details.sr6tw-block > summary::-webkit-details-marker {
+    display: none;
+}
+
+.sr6-turn-wizard details.sr6tw-block > summary::before {
+    content: "▸";
+    flex: 0 0 auto;
+    margin-right: 0.35rem;
+    color: var(--color-text-secondary, #c9c3b6);
+    transition: transform 0.12s ease;
+}
+
+.sr6-turn-wizard details.sr6tw-block[open] > summary::before {
+    transform: rotate(90deg);
+}
 
 .sr6-turn-wizard .sr6tw-block p {
     margin: 0.35rem 0 0;

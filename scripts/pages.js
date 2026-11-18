@@ -70,9 +70,10 @@ export async function buildPage(state) {
         current: candidate.uuid === actor?.uuid,
     }));
     const split = splitBlocks([...(page.blocks ?? []), ...(page.refs ?? [])]);
+    const expandBlocks = !pageHasActions(page);
     return {
         ...page,
-        blocks: split.guide,
+        blocks: split.guide.map((entry) => ({ ...entry, open: expandBlocks })),
         refs: split.refs,
         infoFirst: page.infoFirst ?? (Boolean(page.launch) || !page.groups?.length || split.guide.length > 0),
         actor,
@@ -83,6 +84,13 @@ export async function buildPage(state) {
         economy: actor ? economy(actor) : null,
         against: targetCards(),
     };
+}
+
+function pageHasActions(page) {
+    if (page.steps?.length) return true;
+    if (page.search) return true;
+    if (page.launch) return true;
+    return (page.groups ?? []).some((group) => (group.choices ?? []).length > 0);
 }
 
 const REF_CHIPS = { rules: "Rules", eden: "Eden", gap: "Table" };

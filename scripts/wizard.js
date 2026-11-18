@@ -154,6 +154,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     static async #onBook(event, target) {
         event.preventDefault();
+        event.stopPropagation();
         const book = target.dataset.book;
         const page = Number(target.dataset.page);
         if (!book || !page) return;
