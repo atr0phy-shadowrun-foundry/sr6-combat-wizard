@@ -69,9 +69,12 @@ export async function buildPage(state) {
         name: candidate.name,
         current: candidate.uuid === actor?.uuid,
     }));
+    const split = splitBlocks([...(page.blocks ?? []), ...(page.refs ?? [])]);
     return {
         ...page,
-        infoFirst: page.infoFirst ?? (Boolean(page.launch) || !page.groups?.length),
+        blocks: split.guide,
+        refs: split.refs,
+        infoFirst: page.infoFirst ?? (Boolean(page.launch) || !page.groups?.length || split.guide.length > 0),
         actor,
         acting: actingCard(acting),
         actors,
@@ -80,6 +83,33 @@ export async function buildPage(state) {
         economy: actor ? economy(actor) : null,
         against: targetCards(),
     };
+}
+
+const REF_CHIPS = { rules: "Rules", eden: "Eden", gap: "Table" };
+
+function splitBlocks(entries) {
+    const guide = [];
+    const refs = [];
+    for (const entry of entries) {
+        if (!entry) continue;
+        if (isGuideBlock(entry)) {
+            guide.push(entry);
+            continue;
+        }
+        const tone = entry.tone || "rules";
+        refs.push({
+            ...entry,
+            tone,
+            chip: entry.chip || REF_CHIPS[tone] || "Rules",
+        });
+    }
+    return { guide, refs };
+}
+
+function isGuideBlock(entry) {
+    if (entry.guide) return true;
+    if (entry.tone !== "gap") return false;
+    return /^(No |Nothing |Missing |Compendium not)/i.test(entry.heading || "");
 }
 
 function crumbTrail(state) {
@@ -205,13 +235,15 @@ function homePage(actor) {
     const anytime = choice("Anytime action", "On or off your turn: dodge, block, hit the dirt, full defense.", { go: "anytime", clear: CLEAR, badge: "Anytime", cite: core(42) });
     const edge = choice("Spend Edge", "Boosts on a roll, and Edge actions.", { go: "edge", clear: CLEAR, badge: "Edge", cite: core(44) });
     return {
-        kicker: turnKicker(actor, turn),
-        title: "What kind of action?",
         groups: [
-            { choices: offTurn ? [anytime, edge, major, minor] : [major, minor, anytime, edge] },
             {
-                heading: "Special states",
-                note: "Open these when you are already in that layer. Dimmed doors are still selectable; the next page explains what is missing.",
+                kicker: turnKicker(actor, turn),
+                title: "What kind of action?",
+                choices: offTurn ? [anytime, edge, major, minor] : [major, minor, anytime, edge],
+            },
+            {
+                kicker: "Special states",
+                title: "When acting beyond the meatworld",
                 choices: [
                     choice("In the Matrix", "VR persona work: matrix actions, forms, jack out.", {
                         go: "state-matrix", clear: CLEAR, cite: core(174), dim: !gates.matrix,
@@ -231,7 +263,7 @@ function homePage(actor) {
                 "A common turn is a minor to set up, the major, then any minors left. You can spend them in any order.",
                 "A major action may be spent as a minor. Four minor actions may be spent as one major. Unused actions do not carry into the next round.",
                 "An anytime action can be taken when it is not your turn, as long as you still have that action.",
-            ], core(40)),
+            ], core(40), { guide: true }),
         ],
     };
 }
@@ -786,7 +818,7 @@ function attackKindPage(actor) {
                     ? "You Can't Dodge Bullets is on. Each band past Close adds 1 to the attack's threshold, up to +4 at Extreme, before cover and other threshold moves."
                     : "Against a normal Defense test, range still matters through the Attack Rating on that band.",
             ], core(108)),
-            block("rules", "The five steps, in order", attackSteps(false), core(104)),
+            block("rules", "The five steps, in order", attackSteps(false), core(104), { guide: true }),
         ],
     };
 }
@@ -934,7 +966,7 @@ function attackConfirmPage(actor, data) {
     const modeLine = describeMode(data);
     const targets = targetNames();
     const blocks = [
-        block("rules", "Five steps", attackSteps(settingOn("cantDodgeBullets")), core(104)),
+        block("rules", "Five steps", attackSteps(settingOn("cantDodgeBullets")), core(104), { guide: true }),
         block("eden", "What opens", [
             modeLine,
             targets.length
@@ -1991,16 +2023,16 @@ function choice(label, hint, extra = {}) {
     return { label, hint, ...extra };
 }
 
-function block(tone, heading, paragraphs, cite) {
-    return { tone, heading, paragraphs, cite };
+function block(tone, heading, paragraphs, cite, options = {}) {
+    return { tone, heading, paragraphs, cite, ...options };
 }
 
-function edenBlock(paragraphs) {
-    return block("eden", "On the Eden sheet", paragraphs);
+function edenBlock(paragraphs, cite) {
+    return block("eden", "On the Eden sheet", paragraphs, cite);
 }
 
-function gapBlock(paragraphs) {
-    return block("gap", "What you still settle at the table", paragraphs);
+function gapBlock(paragraphs, cite) {
+    return block("gap", "What you still settle at the table", paragraphs, cite);
 }
 
 function core(page) {

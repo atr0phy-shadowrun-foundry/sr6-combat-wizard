@@ -9,6 +9,24 @@
 </section>
 {{/each}}
 {{/inline}}
+{{#*inline "refs"}}
+{{#if refs.length}}
+<nav class="sr6tw-refs" aria-label="Reference">
+    {{#each refs}}
+    <span class="sr6tw-help {{tone}}">
+        <button type="button" class="sr6tw-help-btn sr6tw-ref-chip" aria-label="{{heading}}">? {{chip}}</button>
+        <span class="sr6tw-tip" role="tooltip">
+            <strong>{{heading}}</strong>
+            {{#each paragraphs}}<p>{{this}}</p>{{/each}}
+            {{#if cite}}
+            <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
+            {{/if}}
+        </span>
+    </span>
+    {{/each}}
+</nav>
+{{/if}}
+{{/inline}}
 <div class="sr6tw">
     <header class="sr6tw-bar">
         <div class="sr6tw-faceoff">
@@ -69,11 +87,12 @@
 
     <div class="sr6tw-scroll">
         {{#if kicker}}<p class="sr6tw-kicker">{{kicker}}</p>{{/if}}
-        <h2 class="sr6tw-title">{{title}}</h2>
+        {{#if title}}<h2 class="sr6tw-title">{{title}}</h2>{{/if}}
         {{#if lead}}
         <p class="sr6tw-lead">{{lead}}{{#if leadCite}} <button type="button" class="sr6tw-cite" data-action="book" data-book="{{leadCite.book}}" data-page="{{leadCite.page}}">{{leadCite.label}} p. {{leadCite.page}}</button>{{/if}}</p>
         {{/if}}
         {{#if notice}}<p class="sr6tw-notice">{{notice}}</p>{{/if}}
+        {{> refs}}
         {{#if infoFirst}}{{> blocks}}{{/if}}
         {{#if steps}}
         <ol class="sr6tw-steps">
@@ -90,7 +109,9 @@
         {{/if}}
 
         {{#each groups}}
-        <section class="sr6tw-group">
+        <section class="sr6tw-group {{#if kicker}}sr6tw-section{{/if}}">
+            {{#if kicker}}<p class="sr6tw-kicker">{{kicker}}</p>{{/if}}
+            {{#if title}}<h2 class="sr6tw-title">{{title}}</h2>{{/if}}
             {{#if heading}}<h3>{{heading}}</h3>{{/if}}
             {{#if note}}<p class="sr6tw-group-note">{{note}}</p>{{/if}}
             <div class="sr6tw-choices">
@@ -128,14 +149,22 @@
                     </span>
                     {{#if badge}}<span class="sr6tw-badge">{{badge}}</span>{{/if}}
                 </button>
-                {{#if hint}}
+                {{#if tip}}
                 <span class="sr6tw-help rules">
                     <button type="button" class="sr6tw-help-btn" aria-label="{{label}}">?</button>
                     <span class="sr6tw-tip" role="tooltip">
-                        <p>{{#if tip}}{{tip}}{{else}}{{hint}}{{/if}}</p>
+                        <p>{{tip}}</p>
                         {{#if cite}}
                         <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
                         {{/if}}
+                    </span>
+                </span>
+                {{else if cite}}
+                <span class="sr6tw-help rules">
+                    <button type="button" class="sr6tw-help-btn" aria-label="Open {{cite.label}} p. {{cite.page}}">?</button>
+                    <span class="sr6tw-tip" role="tooltip">
+                        {{#if hint}}<p>{{hint}}</p>{{/if}}
+                        <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
                     </span>
                 </span>
                 {{/if}}
