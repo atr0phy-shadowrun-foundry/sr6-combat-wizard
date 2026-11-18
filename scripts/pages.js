@@ -163,6 +163,9 @@ async function renderPage(state, actor) {
     if (id === "major") return majorPage(actor);
     if (id === "minor") return minorPage(actor);
     if (id === "anytime") return anytimePage();
+    if (id === "state-matrix") return stateMatrixPage(actor);
+    if (id === "state-astral") return stateAstralPage(actor);
+    if (id === "state-jumped") return stateJumpedPage(actor);
     if (id === "incoming-do") return incomingDoPage(actor, state.data.topic);
     if (id === "attack") return attackKindPage(actor);
     if (id === "weapons") return weaponListPage(actor, state.data.kind);
@@ -202,7 +205,23 @@ function homePage(actor) {
     return {
         kicker: turnKicker(actor, turn),
         title: "What kind of action?",
-        groups: [{ choices: offTurn ? [anytime, edge, major, minor] : [major, minor, anytime, edge] }],
+        groups: [
+            { choices: offTurn ? [anytime, edge, major, minor] : [major, minor, anytime, edge] },
+            {
+                heading: "Special states",
+                choices: [
+                    choice("In the Matrix", "VR persona work: matrix actions, forms, jack out.", {
+                        go: "state-matrix", clear: CLEAR, cite: core(174),
+                    }),
+                    choice("In the Astral", "Perceive or project. Two modes on the next page.", {
+                        go: "state-astral", clear: CLEAR, cite: core(159),
+                    }),
+                    choice("Jumped In", "You are the vehicle or drone. Drive, shoot, jump out.", {
+                        go: "state-jumped", clear: CLEAR, cite: core(196),
+                    }),
+                ],
+            },
+        ],
         blocks: [
             block("rules", "How a round is built", [
                 "Everyone acts once. You start with 1 major action and 1 minor action, plus 1 extra minor for each initiative die, and you do not start with more than 5 minor actions.",
@@ -388,6 +407,182 @@ function anytimeMajors() {
         defenseChoice("Full Defense", "Add Willpower to every Defense test this round.", "full-defense", "Major"),
         topicChoice("Counterspell", "Sorcery versus the spell.", "counterspell", "Major"),
     ];
+}
+
+function stateMatrixPage(actor) {
+    const forms = actor.items.filter((item) => item.type === "complexform");
+    return {
+        kicker: "Special state",
+        title: "In the Matrix",
+        lead: "You are in VR as a persona. Meat Move, Take Cover, and physical Attack wait until you leave. Matrix initiative uses the combatant's matrix flag.",
+        leadCite: core(174),
+        infoFirst: true,
+        groups: [
+            {
+                heading: "Work the Matrix",
+                choices: [
+                    choice("Matrix actions", "Major and minor actions from the system list.", {
+                        go: "matrix", cite: core(179),
+                    }),
+                    choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", {
+                        go: "forms", badge: "Major", cite: core(185),
+                    }),
+                    matrixActionChoice("full_matrix_defense", "Add your Willpower to Matrix Defense tests this round."),
+                ].filter(Boolean),
+            },
+            {
+                heading: "Change mode or leave",
+                choices: [
+                    matrixActionChoice("switch_ifmode", "AR, cold-sim, or hot-sim. Link-lock blocks a clean switch."),
+                    matrixActionChoice("enter_host", "Step into a host, or leave one you are already in."),
+                    matrixActionChoice("jack_out", "Hard exit. Dumpshock if you were in VR and did not switch cleanly."),
+                ].filter(Boolean),
+            },
+            {
+                heading: "Still available",
+                choices: [
+                    choice("Spend Edge", "Boosts and Edge actions still apply on Matrix tests.", {
+                        go: "edge", clear: CLEAR, badge: "Edge", cite: core(44),
+                    }),
+                ],
+            },
+        ],
+        blocks: [
+            block("rules", "Dumpshock and link-lock", [
+                "A dirty disconnect from VR is dumpshock: 3 Stun in cold-sim, 3 Physical in hot-sim, resisted with Willpower. For (10 − Willpower) minutes you cannot gain or spend Edge.",
+                "Link-lock blocks Enter/Exit Host, Reboot Device, and Switch Interface Mode on your access device. Jack Out is still the way off, and it usually still dumpshocks.",
+            ], core(176)),
+            edenBlock([
+                "Set the combatant initiative type to matrix when this pass is a Matrix pass. The tally at the top follows that flag.",
+                "Technomancers need no access device. Everyone else needs a matrix device online and marked for the pool before Eden will open a matrix roll.",
+            ]),
+        ],
+    };
+}
+
+function stateAstralPage(actor) {
+    return {
+        kicker: "Special state",
+        title: "In the Astral",
+        lead: "Pick the mode you are in. Perception keeps the body in the fight. Projection puts you on the astral initiative track.",
+        leadCite: core(159),
+        infoFirst: true,
+        groups: [
+            {
+                heading: "Astral perception",
+                choices: [
+                    topicChoice("Shift Perception", "Switch between astral and physical sight.", "shift-perception", "Minor"),
+                    choice("Assense", "Astral + Intuition. Read an aura, place, or object.", {
+                        go: "skill-confirm", skill: "astral", spec: "none", badge: "Major", cite: core(159),
+                    }),
+                ],
+            },
+            {
+                heading: "Astral projection",
+                choices: [
+                    topicChoice("Astral projection", "Leave the body, or return to it.", "astral-projection", "Major"),
+                    choice("Assense while projecting", "Same Astral + Intuition test, from the astral.", {
+                        go: "skill-confirm", skill: "astral", spec: "none", badge: "Major", cite: core(159),
+                    }),
+                    choice("Astral combat", "Astral + Willpower against an astral target.", {
+                        go: "skill-confirm", skill: "astral", spec: "astral_combat", badge: "Major", cite: core(160),
+                    }),
+                ],
+            },
+            {
+                heading: "Still available",
+                choices: [
+                    choice("Spend Edge", "Edge still applies on astral tests.", {
+                        go: "edge", clear: CLEAR, badge: "Edge", cite: core(44),
+                    }),
+                ],
+            },
+        ],
+        blocks: [
+            block("rules", "While perceiving", [
+                "You are dual-natured. Non-magic tests take −2 dice until you shift back.",
+                "Mystic adepts perceive and do not project. Full and aspected magicians can do both.",
+            ], core(159)),
+            block("rules", "While projecting", [
+                "Astral running covers 5 kilometers a round and you see nothing on the way. An astral walk covers 100 meters a round and you can look around.",
+                "Built things are faint and you pass through them. Other astral beings can slow you, and earth stops you.",
+            ], core(160)),
+            edenBlock([
+                "Shift Perception does not flip the combatant initiative flag. Projection needs the combatant set to astral before the tracker uses that pool.",
+                "Astral combat is not a finished attack-and-damage path between two tokens. Roll the skill, then settle damage in chat.",
+            ]),
+        ],
+    };
+}
+
+function stateJumpedPage(actor) {
+    return {
+        kicker: "Special state",
+        title: "Jumped In",
+        lead: "You are the vehicle or drone. Physical attributes are not used for tests on that device. Hot-sim and cold-sim still matter for initiative and dumpshock.",
+        leadCite: core(196),
+        infoFirst: true,
+        groups: [
+            {
+                heading: "While jumped in",
+                choices: [
+                    choice("Pilot the craft", "Piloting. Jumped-in drones use Piloting + Intuition.", {
+                        go: "skill-confirm", skill: "piloting", spec: "none", badge: "Major", cite: core(196),
+                    }),
+                    choice("Fire mounted weapons", "Gunnery for vehicle or drone mounts.", {
+                        go: "skill-confirm", skill: "engineering", spec: "gunnery", badge: "Major", cite: core(199),
+                    }),
+                    choice("Sensor perception", "Look through the craft. Perception + Intuition.", {
+                        go: "skill-confirm", skill: "perception", spec: "none", cite: core(197),
+                    }),
+                    topicChoice("Command a drone", "Same order to many slaved drones, or a new order each.", "command-drone", "Minor"),
+                ],
+            },
+            {
+                heading: "Enter or leave",
+                choices: [
+                    topicChoice("Jump in", "Take over a vehicle or drone, or read how jump-in works.", "jump-in", "Major"),
+                    matrixActionChoice("jump_rigged", "Eden's Jump into Rigged Device matrix action."),
+                    matrixActionChoice("jack_out", "Hard exit from VR. Dumpshock if the disconnect was dirty."),
+                ].filter(Boolean),
+            },
+            {
+                heading: "Still available",
+                choices: [
+                    choice("Spend Edge", "Edge still applies on jumped-in tests.", {
+                        go: "edge", clear: CLEAR, badge: "Edge", cite: core(44),
+                    }),
+                ],
+            },
+        ],
+        blocks: [
+            block("rules", "Control rig swaps", [
+                "While jumped in, Body becomes Willpower, Strength becomes Charisma, Agility becomes Logic, and Reaction becomes Intuition for tests on that device.",
+                "A crash still soaks with your own Body when you are physically in the vehicle.",
+            ], core(197)),
+            block("rules", "Getting dumped", [
+                "Rebooting the RCC or commlink, bricking that device, destroying the vehicle, or yanking a direct cable dumps you. Dumpshock is 3 Stun cold-sim or 3 Physical hot-sim, then (10 − Willpower) minutes with no Edge.",
+                "The vehicle keeps its last course until something else takes over.",
+            ], core(176)),
+            edenBlock([
+                "Set the vehicle's control mode on its sheet. This page does not flip that mode or move your persona into the vehicle.",
+                "After you are jumped in, open this wizard on the rigger or on the vehicle token, whichever the table is rolling from.",
+            ]),
+        ],
+    };
+}
+
+function matrixActionChoice(id, hint) {
+    const name = actionNameMatrix(id);
+    if (!name) return null;
+    const action = CONFIG.SR6.MATRIX_ACTIONS?.[id];
+    return choice(name, hint, {
+        go: "matrix-confirm",
+        matrixId: id,
+        kind: "matrix",
+        badge: action?.major ? "Major" : "Minor",
+        cite: matrixCite(id),
+    });
 }
 
 function adeptChoice(actor) {
