@@ -139,7 +139,7 @@
                 <span class="sr6tw-help rules">
                     <button type="button" class="sr6tw-help-btn" aria-label="{{label}}">?</button>
                     <span class="sr6tw-tip" role="tooltip">
-                        <p>{{hint}}</p>
+                        <p>{{#if tip}}{{tip}}{{else}}{{hint}}{{/if}}</p>
                         {{#if cite}}
                         <button type="button" data-action="book" data-book="{{cite.book}}" data-page="{{cite.page}}">{{cite.label}} p. {{cite.page}}</button>
                         {{/if}}

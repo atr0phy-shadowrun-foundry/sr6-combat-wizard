@@ -121,9 +121,18 @@ async function launchSkill(actor, skillId, spec) {
     return actor.rollSkill(roll);
 }
 
+export function lacksMatrixDevice(actor) {
+    if (!actor || actor.isTechno) return false;
+    if (actor.system instanceof foundry.abstract.DataModel) return false;
+    return !actor.system?.persona?.accessDevice;
+}
+
 async function launchMatrix(actor, matrixId) {
     const source = CONFIG.SR6.MATRIX_ACTIONS?.[matrixId];
     if (!source) throw new Error("That matrix action is not in the system config.");
+    if (lacksMatrixDevice(actor)) {
+        throw new Error(`${actor.name} has no matrix device in use. On the sheet's Matrix tab, switch a commlink, cyberdeck, or similar device online and tick it to access the Matrix.`);
+    }
     const action = { ...source, id: source.id || matrixId };
     const targeted = [...game.user.targets];
     const target = targeted.length === 1 ? targeted[0].actor : null;

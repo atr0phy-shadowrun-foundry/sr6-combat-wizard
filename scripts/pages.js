@@ -3,6 +3,7 @@ import { packLabel, searchPack } from "./compendiums.js";
 import { buildProvision, findByGenesis, secondWeaponPlans } from "./provisions.js";
 import { EDGE_ACTIONS, EDGE_BOOSTS, TOPICS } from "./topics.js";
 import { readTally } from "./tally.js";
+import { lacksMatrixDevice } from "./launch.js";
 
 const CLEAR = "itemId,fireMode,burst,faArea,topic,skill,spec,matrixId,pool,kind";
 const FIRE_MODE_COPY = {
@@ -1000,6 +1001,7 @@ function matrixPage(actor) {
             { heading: "Minor matrix actions", choices: minor.map(matrixChoice) },
         ],
         blocks: [
+            ...(lacksMatrixDevice(actor) ? [noDeviceBlock(actor)] : []),
             block("gap", "IC is not in this list", [
                 "Host IC such as Killer and Patrol is omitted. Those are the host's actions. Open the host if you are running one.",
             ]),
@@ -1053,15 +1055,18 @@ function matrixConfirmPage(actor, data) {
     const action = CONFIG.SR6.MATRIX_ACTIONS?.[data.matrixId];
     const name = actionNameMatrix(data.matrixId);
     const hint = localizeOrEmpty(`shadowrun6.matrixaction.${data.matrixId}.hint`);
+    const cite = matrixCite(data.matrixId) ?? core(179);
+    const noDevice = lacksMatrixDevice(actor);
     return {
         kicker: action?.major ? "Major matrix action" : "Minor matrix action",
         title: name,
         lead: action?.skill
             ? "Target the icon when the action is opposed. One target uses that icon. No target rolls it as a reference action."
             : "This action has no skill test. Eden posts the description to chat.",
-        leadCite: core(179),
+        leadCite: cite,
         blocks: [
-            block("rules", "From the matrix action", [hint || "Read the action in the matrix chapter, printed pp. 179–184."], core(179)),
+            ...(noDevice ? [noDeviceBlock(actor)] : []),
+            block("rules", "From the matrix action", [hint || "Read the action in the matrix chapter, printed pp. 180–184."], cite),
             edenBlock([
                 action?.illegal
                     ? "This action is illegal. Overwatch still has to be tracked. The sheet stores Overwatch fields and does not advance them from this button."
@@ -1069,8 +1074,14 @@ function matrixConfirmPage(actor, data) {
                 "Access level is outsider, user, or admin, stored as a flag between the two documents. Brute Force can set that flag when its card resolves. Most other actions still need the table to change access.",
             ]),
         ],
-        launch: { type: "matrix", label: action?.skill ? "Open the matrix roll" : "Post this action to chat" },
+        launch: noDevice ? undefined : { type: "matrix", label: action?.skill ? "Open the matrix roll" : "Post this action to chat" },
     };
+}
+
+function noDeviceBlock(actor) {
+    return block("gap", "No matrix device in use", [
+        `Eden builds matrix rolls from the device ${actor.name} uses to access the Matrix, and this sheet has none. On the Matrix tab, switch a commlink, cyberdeck, cyberjack, rigger console, dataterm, or cyberterm online and tick it as the device used to access the Matrix. Technomancers do not need one.`,
+    ]);
 }
 
 function skillsPage(actor) {
@@ -1345,13 +1356,30 @@ function matrixActions() {
         .map(([id, action]) => ({ id, major: Boolean(action.major), skill: action.skill }));
 }
 
+const MATRIX_PAGES = {
+    backdoor_entry: 180, brute_force: 180, change_icon: 180, check_os: 180, control_device: 180, crack_file: 180,
+    crash_program: 181, data_spike: 181, disarm_data_bomb: 181, edit_file: 181, encrypt_file: 181, enter_host: 181,
+    erase_matrix_signature: 181, format_device: 181,
+    full_matrix_defense: 182, hash_check: 182, hide: 182, jack_out: 182, jam_signals: 182, jump_rigged: 182, matrix_perception: 182,
+    matrix_search: 183, probe: 183, reboot_device: 183, reconfigure: 183, send_message: 183, set_data_bomb: 183,
+    snoop: 184, spoof_command: 184, switch_ifmode: 184, tarpit: 184, trace_icon: 184,
+};
+
+function matrixCite(id) {
+    return MATRIX_PAGES[id] ? core(MATRIX_PAGES[id]) : undefined;
+}
+
 function matrixChoice(action) {
-    return choice(actionNameMatrix(action.id), action.skill ? `Skill ${action.skill}.` : "No skill test.", {
+    const skill = action.skill ? `${game.i18n.localize(`skill.${action.skill}`)}.` : "No skill test.";
+    const hint = localizeOrEmpty(`shadowrun6.matrixaction.${action.id}.hint`);
+    const summary = hint.split(/(?<=[.!?])\s+/)[0];
+    return choice(actionNameMatrix(action.id), summary ? `${skill} ${summary}` : skill, {
+        tip: hint || undefined,
         go: "matrix-confirm",
         matrixId: action.id,
         kind: "matrix",
         badge: action.major ? "Major" : "Minor",
-        cite: core(179),
+        cite: matrixCite(action.id),
     });
 }
 
