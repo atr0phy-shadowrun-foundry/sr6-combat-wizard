@@ -2,7 +2,7 @@
   "id": "sr6-turn-wizard",
   "title": "Shadowrun Turn Wizard",
   "description": "A page-by-page combat-turn guide for Shadowrun 6 on the Eden sheet. Cites the book, opens the sheet roll, and can copy weapons, spells, and other gear from the shadowrun-data compendiums.",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "compatibility": {
     "minimum": "13",
     "verified": "14.370",
@@ -35,6 +35,14 @@
         "compatibility": {
           "minimum": "1.0.5",
           "verified": "1.0.5"
+        }
+      },
+      {
+        "id": "sr6-catalog",
+        "type": "module",
+        "compatibility": {
+          "minimum": "0.1.0",
+          "verified": "0.1.0"
         }
       }
     ]

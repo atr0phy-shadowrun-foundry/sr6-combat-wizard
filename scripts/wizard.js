@@ -54,6 +54,7 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
             search: this.#onSearch,
             pack: this.#onPack,
             import: this.#onImport,
+            "browse-compendium": this.#onBrowseCompendium,
             provision: this.#onProvision,
             crumb: this.#onCrumb,
         };
@@ -226,6 +227,26 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
     static async #onImport(event, target) {
         event.preventDefault();
         const created = await importFromCompendium(this.actor, target.dataset.pack, target.dataset.documentId);
+        if (!created) return;
+        const destination = destinationForItem(created);
+        await this.#navigate(destination.pageId, destination.patch, created.name);
+    }
+
+    static async #onBrowseCompendium(event, target) {
+        event.preventDefault();
+        const api = game.modules.get("sr6-catalog")?.api;
+        if (!api?.pick) {
+            ui.notifications.warn("Enable the Shadowrun Catalog module (sr6-catalog).");
+            return;
+        }
+        const pack = target.dataset.pack || this.turn.data.pack || "weapons";
+        const hit = await api.pick({
+            actor: this.actor,
+            packs: [pack],
+            title: target.dataset.label || cleanLabel(target) || `Look up ${pack}`,
+        });
+        if (!hit) return;
+        const created = await importFromCompendium(this.actor, hit.pack, hit.documentId);
         if (!created) return;
         const destination = destinationForItem(created);
         await this.#navigate(destination.pageId, destination.patch, created.name);

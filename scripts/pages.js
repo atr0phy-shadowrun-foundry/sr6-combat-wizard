@@ -1621,7 +1621,12 @@ async function compendiumPage(data) {
 }
 
 function compendiumChoice(label, hint, pack, kind) {
-    return choice(label, hint, { go: "compendium", pack, kind, clear: "query" });
+    return choice(label, hint, {
+        action: "browse-compendium",
+        pack,
+        kind,
+        badge: "Catalog",
+    });
 }
 
 function topicPage(id, actor, data = {}) {
