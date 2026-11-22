@@ -98,7 +98,9 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     selectionChanged() {
         const before = this.actor?.uuid ?? null;
-        this.turn.actorUuid = null;
+        // Follow a live token selection; keep a pinned actor when nothing is controlled.
+        const controlled = canvas?.tokens?.controlled ?? [];
+        if (controlled.length) this.turn.actorUuid = null;
         if (this.actor?.uuid !== before && this.turn.pageId !== "home") {
             this.turn.pageId = "home";
             this.turn.history = [];
@@ -234,22 +236,32 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
 
     static async #onBrowseCompendium(event, target) {
         event.preventDefault();
+        const actor = this.actor;
+        if (!actor) {
+            ui.notifications.warn("Select a combatant before browsing the catalog.");
+            return;
+        }
         const api = game.modules.get("sr6-catalog")?.api;
         if (!api?.pick) {
             ui.notifications.warn("Enable the Shadowrun Catalog module (sr6-catalog).");
             return;
         }
-        const pack = target.dataset.pack || this.turn.data.pack || "weapons";
-        const hit = await api.pick({
-            actor: this.actor,
-            packs: [pack],
-            title: target.dataset.label || cleanLabel(target) || `Look up ${pack}`,
-        });
-        if (!hit) return;
-        const created = await importFromCompendium(this.actor, hit.pack, hit.documentId);
-        if (!created) return;
-        const destination = destinationForItem(created);
-        await this.#navigate(destination.pageId, destination.patch, created.name);
+        try {
+            const pack = target.dataset.pack || this.turn.data.pack || "weapons";
+            const hit = await api.pick({
+                actor,
+                packs: [pack],
+                title: target.dataset.label || cleanLabel(target) || `Look up ${pack}`,
+            });
+            if (!hit) return;
+            const created = await importFromCompendium(actor, hit.pack, hit.documentId);
+            if (!created) return;
+            const destination = destinationForItem(created);
+            await this.#navigate(destination.pageId, destination.patch, created.name);
+        } catch (error) {
+            console.error("sr6-turn-wizard | browse-compendium failed", error);
+            ui.notifications.error(error.message || "Catalog import failed.");
+        }
     }
 
     static async #onProvision(event, target) {
