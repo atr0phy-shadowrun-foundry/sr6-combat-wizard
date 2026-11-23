@@ -1,6 +1,6 @@
 # Shadowrun Turn Wizard
 
-Foundry module `sr6-turn-wizard` version 0.1.13.
+Foundry module `sr6-turn-wizard` version 0.1.16.
 
 It requires:
 
@@ -10,6 +10,8 @@ It requires:
 - module `sr6-catalog` 0.1.0 or newer (shared item picker)
 
 The wizard walks a combat turn, cites the book, and opens the Eden roll when the sheet can finish it. Look-up actions open the shared catalog and copy the pick onto the acting character.
+
+**In the Matrix** on the home page opens a guided runbook: persona/device → AR/cold-sim/hot-sim → prep (reconfigure / techno) → target → intent → Eden roll → Overwatch pad. See `docs/rules/matrix.md` for the page map.
 
 ## Install in Foundry
 

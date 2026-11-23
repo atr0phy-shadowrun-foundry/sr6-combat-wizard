@@ -130,7 +130,7 @@ export function destinationForItem(item) {
     if (item.type === "spell") return { pageId: "spell-confirm", patch: { ...patch, kind: "spell" } };
     if (item.type === "ritual") return { pageId: "spell-confirm", patch: { ...patch, kind: "ritual" } };
     if (item.type === "adeptpower") return { pageId: "adept-detail", patch };
-    if (item.type === "complexform") return { pageId: "matrix-confirm", patch: { ...patch, kind: "form" } };
+    if (item.type === "complexform") return { pageId: "mx-confirm", patch: { ...patch, kind: "form" } };
     if (item.type === "focus") return { pageId: "topic", patch: { ...patch, topic: "focus" } };
     if (String(item.system?.type || "").includes("DRONE")) {
         return { pageId: "topic", patch: { ...patch, topic: "command-drone" } };

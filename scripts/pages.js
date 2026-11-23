@@ -4,8 +4,9 @@ import { buildProvision, findByGenesis, secondWeaponPlans } from "./provisions.j
 import { EDGE_ACTIONS, EDGE_BOOSTS, TOPICS } from "./topics.js";
 import { readTally } from "./tally.js";
 import { lacksMatrixDevice } from "./launch.js";
+import { renderMatrixGuidePage } from "./matrix-guide.js";
 
-const CLEAR = "itemId,fireMode,burst,faArea,topic,skill,spec,matrixId,pool,kind";
+const CLEAR = "itemId,fireMode,burst,faArea,topic,skill,spec,matrixId,pool,kind,deviceId,matrixMode,hostUuid,matrixIntent,osDelta";
 const FIRE_MODE_COPY = {
     SS: {
         label: "Single shot",
@@ -197,7 +198,8 @@ async function renderPage(state, actor) {
     if (id === "major") return majorPage(actor);
     if (id === "minor") return minorPage(actor);
     if (id === "anytime") return anytimePage();
-    if (id === "state-matrix") return stateMatrixPage(actor);
+    const matrixGuide = renderMatrixGuidePage(id, actor, state.data);
+    if (matrixGuide) return matrixGuide;
     if (id === "state-astral") return stateAstralPage(actor);
     if (id === "state-jumped") return stateJumpedPage(actor);
     if (id === "incoming-do") return incomingDoPage(actor, state.data.topic);
@@ -249,8 +251,8 @@ function homePage(actor) {
                 kicker: "Special states",
                 title: "When acting beyond the meatworld",
                 choices: [
-                    choice("In the Matrix", "VR persona work: matrix actions, forms, jack out.", {
-                        go: "state-matrix", clear: CLEAR, cite: core(174), dim: !gates.matrix,
+                    choice("In the Matrix", "Step-by-step: persona, mode, target, actions, Overwatch.", {
+                        go: "mx-hub", clear: CLEAR, cite: core(174), dim: !gates.matrix,
                     }),
                     choice("In the Astral", "Perceive or project. Two modes on the next page.", {
                         go: "state-astral", clear: CLEAR, cite: core(159), dim: !gates.astralPerceive,
@@ -470,61 +472,6 @@ function anytimeMajors() {
     ];
 }
 
-function stateMatrixPage(actor) {
-    const forms = actor.items.filter((item) => item.type === "complexform");
-    const gates = actorGates(actor);
-    return {
-        kicker: "Special state",
-        title: "In the Matrix",
-        lead: "You are in VR as a persona. Meat Move, Take Cover, and physical Attack wait until you leave. Matrix initiative uses the combatant's matrix flag.",
-        leadCite: core(174),
-        notice: gates.matrix
-            ? ""
-            : "You need a connected matrix device. On the sheet's Matrix tab, switch a commlink, cyberdeck, or similar device online and tick it as the device used to access the Matrix. Technomancers use a living persona instead.",
-        infoFirst: true,
-        groups: [
-            {
-                heading: "Work the Matrix",
-                choices: [
-                    choice("Matrix actions", "Major and minor actions from the system list.", {
-                        go: "matrix", cite: core(179),
-                    }),
-                    choice("Complex forms", forms.length ? `${forms.length} on the sheet.` : "None on this sheet.", {
-                        go: "forms", badge: "Major", cite: core(189),
-                    }),
-                    matrixActionChoice("full_matrix_defense", "Add your Willpower to Matrix Defense tests this round."),
-                ].filter(Boolean),
-            },
-            {
-                heading: "Change mode or leave",
-                choices: [
-                    matrixActionChoice("switch_ifmode", "AR, cold-sim, or hot-sim. Link-lock blocks a clean switch."),
-                    matrixActionChoice("enter_host", "Step into a host, or leave one you are already in."),
-                    matrixActionChoice("jack_out", "Hard exit. Dumpshock if you were in VR and did not switch cleanly."),
-                ].filter(Boolean),
-            },
-            {
-                heading: "Still available",
-                choices: [
-                    choice("Spend Edge", "Boosts and Edge actions still apply on Matrix tests.", {
-                        go: "edge", clear: CLEAR, badge: "Edge", cite: core(44),
-                    }),
-                ],
-            },
-        ],
-        blocks: [
-            block("rules", "Dumpshock and link-lock", [
-                "A dirty disconnect from VR is dumpshock: 3 Stun in cold-sim, 3 Physical in hot-sim, resisted with Willpower. For (10 − Willpower) minutes you cannot gain or spend Edge.",
-                "Link-lock blocks Enter/Exit Host, Reboot Device, and Switch Interface Mode on your access device. Jack Out is still the way off, and it usually still dumpshocks.",
-            ], core(176)),
-            edenBlock([
-                "Set the combatant initiative type to matrix when this pass is a Matrix pass. The tally at the top follows that flag.",
-                "Technomancers need no access device. Everyone else needs a matrix device online and marked for the pool before Eden will open a matrix roll.",
-            ]),
-        ],
-    };
-}
-
 function stateAstralPage(actor) {
     const gates = actorGates(actor);
     let notice = "";
@@ -659,9 +606,10 @@ function matrixActionChoice(id, hint) {
     if (!name) return null;
     const action = CONFIG.SR6.MATRIX_ACTIONS?.[id];
     return choice(name, hint, {
-        go: "matrix-confirm",
+        go: "mx-confirm",
         matrixId: id,
         kind: "matrix",
+        osDelta: action?.illegal ? "1" : "0",
         badge: action?.major ? "Major" : "Minor",
         cite: matrixCite(id),
     });
@@ -1451,7 +1399,7 @@ function formsPage(actor) {
             : "You need Resonance. Complex forms are for technomancers.",
         groups: [{
             choices: forms.map((item) => choice(item.name, `Fading ${item.system.fading ?? "?"}. ${item.system.skill || "No skill"}.`, {
-                go: "matrix-confirm",
+                go: "mx-confirm",
                 itemId: item.id,
                 kind: "form",
                 cite: core(189),
@@ -1881,11 +1829,13 @@ function matrixChoice(action) {
     const skill = action.skill ? `${game.i18n.localize(`skill.${action.skill}`)}.` : "No skill test.";
     const hint = localizeOrEmpty(`shadowrun6.matrixaction.${action.id}.hint`);
     const summary = hint.split(/(?<=[.!?])\s+/)[0];
+    const cfg = CONFIG.SR6.MATRIX_ACTIONS?.[action.id];
     return choice(actionNameMatrix(action.id), summary ? `${skill} ${summary}` : skill, {
         tip: hint || undefined,
-        go: "matrix-confirm",
+        go: "mx-confirm",
         matrixId: action.id,
         kind: "matrix",
+        osDelta: cfg?.illegal ? "1" : "0",
         badge: action.major ? "Major" : "Minor",
         cite: matrixCite(action.id),
     });

@@ -2,11 +2,16 @@ import { destinationForItem, importFromCompendium, openPack } from "./compendium
 import { buildProvision, findByGenesis } from "./provisions.js";
 import { buildPage, resolveActing } from "./pages.js";
 import { openPrintedPage, refillWeapon, runLaunch, setStatusLevel, toggleStatus } from "./launch.js";
+import { applyMatrixDevice, applyMatrixMode, bumpOverwatch } from "./matrix-guide.js";
 import { addTally } from "./tally.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-const DATA_FIELDS = ["kind", "itemId", "fireMode", "burst", "faArea", "topic", "skill", "spec", "matrixId", "pool", "pack"];
+const DATA_FIELDS = [
+    "kind", "itemId", "fireMode", "burst", "faArea", "topic", "skill", "spec",
+    "matrixId", "pool", "pack", "deviceId", "matrixMode", "hostUuid",
+    "matrixIntent", "osDelta",
+];
 
 function dataAttribute(key) {
     return "data-" + key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
@@ -57,6 +62,9 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
             "browse-compendium": this.#onBrowseCompendium,
             provision: this.#onProvision,
             crumb: this.#onCrumb,
+            "mx-device": this.#onMxDevice,
+            "mx-mode": this.#onMxMode,
+            "os-bump": this.#onOsBump,
         };
     }
 
@@ -283,6 +291,49 @@ export class TurnWizard extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!existing) ui.notifications.info(`${created.name} was added to ${actor.name}.`);
         const destination = destinationForItem(created);
         await this.#navigate(destination.pageId, destination.patch, created.name);
+    }
+
+    static async #onMxDevice(event, target) {
+        event.preventDefault();
+        const actor = this.actor;
+        if (!actor) return;
+        const deviceId = target.dataset.deviceId;
+        if (!deviceId) return;
+        try {
+            if (!(await applyMatrixDevice(actor, deviceId))) return;
+            await this.#navigate("mx-mode", { deviceId }, target.dataset.label || cleanLabel(target));
+        } catch (error) {
+            console.error("sr6-turn-wizard | mx-device failed", error);
+            ui.notifications.error(error.message || "Could not set the Matrix access device.");
+        }
+    }
+
+    static async #onMxMode(event, target) {
+        event.preventDefault();
+        const actor = this.actor;
+        if (!actor) return;
+        const matrixMode = target.dataset.matrixMode;
+        if (!matrixMode) return;
+        try {
+            if (!(await applyMatrixMode(actor, matrixMode))) return;
+            await this.#navigate("mx-prep", { matrixMode }, target.dataset.label || cleanLabel(target));
+        } catch (error) {
+            console.error("sr6-turn-wizard | mx-mode failed", error);
+            ui.notifications.error(error.message || "Could not set Matrix mode.");
+        }
+    }
+
+    static async #onOsBump(event, target) {
+        event.preventDefault();
+        const actor = this.actor;
+        if (!actor) return;
+        try {
+            await bumpOverwatch(actor, target.dataset.delta);
+            return this.render();
+        } catch (error) {
+            console.error("sr6-turn-wizard | os-bump failed", error);
+            ui.notifications.error(error.message || "Could not update Overwatch Score.");
+        }
     }
 
     #snapshot() {
